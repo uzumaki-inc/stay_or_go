@@ -1,0 +1,62 @@
+# ビルドされた実行ファイル
+/app
+/app.exe
+/app.dmg
+/app.pkg
+/app.app
+/app.so
+/app.dylib
+/app.dll
+
+# 一般的なバイナリファイル
+*.exe
+*.dll
+*.so
+*.dylib
+
+# テストバイナリ
+*.test
+
+# 出力ファイル
+*.out
+
+# プロファイルデータ
+*.prof
+
+# ビルドディレクトリ
+/bin/
+build/
+
+# カバレッジプロファイル
+coverage.out
+
+# 編集者やIDEの設定ファイル
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS固有のファイル
+.DS_Store
+Thumbs.db
+
+# ログファイル
+*.log
+
+# 一時ファイル
+*.tmp
+*.temp
+
+# GolangCI-Lintのキャッシュ
+.golangci.*
+
+# Goのワークスペースファイル
+go.work
+go.work.sum
+
+# ベンダーディレクトリ（必要に応じて）
+# /vendor/
+
+# depパッケージマネージャーのファイル
+Gopkg.lock
+Gopkg.toml
