@@ -1,20 +1,16 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 var greeting string
+var supportedLanguages = []string{"ruby", "go"}
 
-// 構造体にすべて埋めないとエラーにするLintをスキップする
-//
-//nolint:exhaustruct
 var rootCmd = &cobra.Command{
 	Use:     "StayOrGo",
 	Version: "0.1.0",
@@ -25,15 +21,31 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	Run: func(_ *cobra.Command, _ []string) {
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			fmt.Println("Please Enter specify a language (" + strings.Join(supportedLanguages, " or ") + ")")
+			os.Exit(1)
+		}
+
+		language := args[0] // Get the language argument
+		if !isSupportedLanguage(language) {
+			fmt.Println("Error: Unsupported language:", language)
+			os.Exit(1)
+		}
+
 		fmt.Println(greeting, "World!")
 	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+func isSupportedLanguage(language string) bool {
+	for _, l := range supportedLanguages {
+		if l == language {
+			return true
+		}
+	}
+	return false
+}
+
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
