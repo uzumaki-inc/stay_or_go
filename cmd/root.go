@@ -9,6 +9,7 @@ import (
 )
 
 var greeting string
+var fileName string
 var supportedLanguages = []string{"ruby", "go"}
 
 var rootCmd = &cobra.Command{
@@ -33,6 +34,16 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
+		var fileName = ""
+		if fileName == "" {
+			if language == "ruby" {
+				fileName = "./Gemfile"
+			} else if language == "go" {
+				fileName = "./go.mod"
+			}
+		}
+		fmt.Println("Reading file:", fileName)
+
 		fmt.Println(greeting, "World!")
 	},
 }
@@ -54,6 +65,7 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.Flags().StringVarP(&fileName, "file", "f", "", "Specify the file to read")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.Flags().StringVarP(&greeting, "greeting", "g", "Hello", "Greeting message to display before 'World!'")
 }
