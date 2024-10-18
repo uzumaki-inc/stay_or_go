@@ -11,7 +11,14 @@ import (
 var greeting string
 var fileName string
 var supportedLanguages = []string{"ruby", "go"}
+var languageConfigMap = map[string]string{
+	"ruby": "Gemfile",
+	"go":   "go.mod",
+}
 
+// 引数を全部設定するlintを回避
+//
+//nolint:exhaustruct
 var rootCmd = &cobra.Command{
 	Use:     "StayOrGo",
 	Version: "0.1.0",
@@ -22,7 +29,7 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		if len(args) == 0 {
 			fmt.Println("Please Enter specify a language (" + strings.Join(supportedLanguages, " or ") + ")")
 			os.Exit(1)
@@ -34,13 +41,8 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
-		var fileName = ""
 		if fileName == "" {
-			if language == "ruby" {
-				fileName = "./Gemfile"
-			} else if language == "go" {
-				fileName = "./go.mod"
-			}
+			fileName = languageConfigMap[language]
 		}
 		fmt.Println("Reading file:", fileName)
 
@@ -54,6 +56,7 @@ func isSupportedLanguage(language string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
