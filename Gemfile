@@ -6,9 +6,19 @@ ruby '3.2.2'
 # Railsフレームワーク
 gem 'rails', '~> 7.0.0'
 
-# データベースを使うためのGem（デフォルトではSQLite）
-gem 'sqlite3', '~> 1.4'
+gem 'webmock', '~> 7.0.0', :require => false
+gem "nokogiri", require: true
+gem "rspec", :group => :test
+gem "weakling",   :platforms => :jruby
+gem "some_internal_gem", :source => "https://gems.example.com"
+gem "rails_git", "2.3.8", :git => "git://github.com/rails/rails.git"
+gem "rails_github", :github => "rails/rails"
+gem "nokogiri_version", ">= 1.4.2"
+gem "RedCloth_version", ">= 4.1.0", "< 4.2.0"
 
+# データベースを使うためのGem（デフォルトではSQLite）
+gem 'sqlite3'
+gem
 # Webサーバー
 gem 'puma', '~> 6.0'
 

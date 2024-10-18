@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/konyu/StayOrGo/parser"
 	"github.com/spf13/cobra"
 )
 
@@ -68,6 +69,10 @@ to quickly create a Cobra application.`,
 		fmt.Println("Language", language)
 		fmt.Println("Reading file:", fileName)
 		fmt.Println("Output format:", outputFormat)
+
+		p := parser.SelectParser(language) // 言語に合わせたパーサーを選択
+		result := p.Parse(fileName)        // パーサーでファイルをパース
+		fmt.Println("Parse result:", result)
 	},
 }
 
