@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/konyu/StayOrGo/analyzer"
 	"github.com/konyu/StayOrGo/parser"
 	"github.com/spf13/cobra"
 )
@@ -13,6 +14,7 @@ import (
 var (
 	fileName           string
 	outputFormat       string
+	githubToken        string
 	supportedLanguages = []string{"ruby", "go"}
 	languageConfigMap  = map[string]string{
 		"ruby": "Gemfile",
@@ -66,6 +68,16 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
+		// --github-tokenのデータがなければ、環境変数　GITHUB_TOKENをチェックし
+		// それがなければ--github-tokenかGITHUB_TOKENを追加するよう促す
+		if githubToken == "" {
+			githubToken = os.Getenv("GITHUB_TOKEN")
+			if githubToken == "" {
+				fmt.Println("Please provide a GitHub token using the --github-token flag or set the GITHUB_TOKEN environment variable")
+				os.Exit(1)
+			}
+		}
+
 		fmt.Println("Language", language)
 		fmt.Println("Reading file:", fileName)
 		fmt.Println("Output format:", outputFormat)
@@ -76,6 +88,20 @@ to quickly create a Cobra application.`,
 
 		p.GetRepositoryUrl(result)
 		fmt.Println("GetRepositoryUrl result:", result)
+
+		// TODO resultを入力に渡せるようにする
+		libraryRepos := map[string]string{
+			"rails":    "https://github.com/rails/rails",
+			"nokogiri": "https://github.com/sparklemotion/nokogiri",
+			"nocodb":   "https://github.com/konyu/nocodb-seed-heroku",
+		}
+
+		a := analyzer.NewGitHubRepoAnalyzer(githubToken, libraryRepos)
+		infoList := a.FetchInfo()
+
+		for _, info := range infoList {
+			fmt.Printf("Repo: %s, Stars: %d, Forks: %d, Last Commit: %s, Archived: %t \n", info.RepositoryName, info.Stars, info.Forks, info.LastCommitDate, info.Archived)
+		}
 	},
 }
 
@@ -99,5 +125,6 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVarP(&fileName, "input", "i", "", "Specify the file to read")
 	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "markdown", "Specify the output format (csv, tsv, markdown)")
+	rootCmd.Flags().StringVarP(&githubToken, "github-token", "g", "", "GitHub token for authentication")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
