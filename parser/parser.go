@@ -1,13 +1,15 @@
 package parser
 
 type LibInfo struct {
-	Name   string   // ライブラリの名前
-	Skip   bool     // 次の設定値をスキップするかどうかのフラグ
-	Others []string // その他のライブラリの設定値
+	Name          string   // ライブラリの名前
+	Skip          bool     // 次の設定値をスキップするかどうかのフラグ
+	Others        []string // その他のライブラリの設定値
+	RepositoryUrl string   // githubのりポトリのURL
 }
 
 type Parser interface {
 	Parse(file string) []LibInfo
+	GetRepositoryUrl(libInfoList []LibInfo) []LibInfo
 }
 
 var selectedParser Parser

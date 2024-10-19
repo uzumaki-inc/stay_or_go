@@ -82,23 +82,23 @@ func TestRubyParser_Parse(t *testing.T) {
 			result := p.Parse(tmpfile.Name())
 
 			// 結果をフィールドごとに比較する
-			if len(result) != len(tt.expected) {
-				t.Fatalf("expected %d lib entries, but got %d", len(tt.expected), len(result))
+			if len(*result) != len(tt.expected) {
+				t.Fatalf("expected %d lib entries, but got %d", len(tt.expected), len(*result))
 			}
 
-			for i := range result {
-				if result[i].Name != tt.expected[i].Name {
-					t.Errorf("expected name %v, but got %v", tt.expected[i].Name, result[i].Name)
+			for i := range *result {
+				if (*result)[i].Name != tt.expected[i].Name {
+					t.Errorf("expected name %v, but got %v", tt.expected[i].Name, (*result)[i].Name)
 				}
-				if result[i].Skip != tt.expected[i].Skip {
-					t.Errorf("expected skip %v, but got %v", tt.expected[i].Skip, result[i].Skip)
+				if (*result)[i].Skip != tt.expected[i].Skip {
+					t.Errorf("expected skip %v, but got %v", tt.expected[i].Skip, (*result)[i].Skip)
 				}
-				if len(result[i].Others) != len(tt.expected[i].Others) {
-					t.Errorf("expected %d others, but got %d", len(tt.expected[i].Others), len(result[i].Others))
+				if len((*result)[i].Others) != len(tt.expected[i].Others) {
+					t.Errorf("expected %d others, but got %d", len(tt.expected[i].Others), len((*result)[i].Others))
 				}
-				for j := range result[i].Others {
-					if result[i].Others[j] != tt.expected[i].Others[j] {
-						t.Errorf("expected other %v, but got %v", tt.expected[i].Others[j], result[i].Others[j])
+				for j := range (*result)[i].Others {
+					if (*result)[i].Others[j] != tt.expected[i].Others[j] {
+						t.Errorf("expected other %v, but got %v", tt.expected[i].Others[j], (*result)[i].Others[j])
 					}
 				}
 			}
