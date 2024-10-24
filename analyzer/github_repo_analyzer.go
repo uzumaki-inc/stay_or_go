@@ -5,41 +5,36 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/konyu/StayOrGo/common"
 )
 
 type GitHubRepoAnalyzer struct {
-	libraryRepos map[string]string
-	githubToken  string
+	githubToken string
 }
 
-func NewGitHubRepoAnalyzer(token string, libraryRepos map[string]string) *GitHubRepoAnalyzer {
+func NewGitHubRepoAnalyzer(token string) *GitHubRepoAnalyzer {
 	return &GitHubRepoAnalyzer{
-		githubToken:  token,
-		libraryRepos: libraryRepos,
+		githubToken: token,
 	}
 }
 
-type GitHubRepoInfo struct {
-	RepositoryName   string `json:"repository_name"`
-	Watchers         int    `json:"watchers"`
-	Stars            int    `json:"stars"`
-	Forks            int    `json:"forks"`
-	OpenPullRequests int    `json:"open_pull_requests"`
-	OpenIssues       int    `json:"open_issues"`
-	LastCommitDate   string `json:"last_commit_date"`
-	LibraryName      string `json:"library_name"`
-	GithubRepoUrl    string `json:"github_repo_url"`
-	Archived         bool   `json:"archived"`
-}
-
 // FetchInfo fetches information for each repository
-func (g *GitHubRepoAnalyzer) FetchInfo() []GitHubRepoInfo {
-	var libraryInfoList []GitHubRepoInfo
-	for name, repoUrl := range g.libraryRepos {
-		fmt.Printf("Getting GitHub info for %s: %s\n", name, repoUrl)
+func (g *GitHubRepoAnalyzer) FetchGithubInfo(analyzedLibInfo []common.AnalyzedLibInfo) []common.GitHubRepoInfo {
+	var libraryInfoList []common.GitHubRepoInfo
+	for _, info := range analyzedLibInfo {
+		if info.Skip {
+			continue
+		}
+		name := info.LibInfo.Name
+		repoUrl := info.LibInfo.RepositoryUrl
+
+		fmt.Printf("Getting GitHub info for %s: %s\n", info.LibInfo.Name, info.LibInfo.RepositoryUrl)
 
 		libraryInfo, err := g.getGitHubInfo(repoUrl)
 		if err != nil {
+			info.Skip = true
+			info.SkipReason = "Failed getting" + name + "GitHub info:"
 			fmt.Printf("Failed getting %s GitHub info: %v\n", name, err)
 			continue
 		}
@@ -54,7 +49,7 @@ func (g *GitHubRepoAnalyzer) FetchInfo() []GitHubRepoInfo {
 }
 
 // getGitHubInfo fetches repository info from GitHub API
-func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, error) {
+func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*common.GitHubRepoInfo, error) {
 	// githubToken := os.Getenv("GITHUB_TOKEN")
 	if g.githubToken == "" {
 		return nil, fmt.Errorf("GitHub token not set")
@@ -103,7 +98,7 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, err
 
 	lastCommitDate := commitData["commit"].(map[string]interface{})["committer"].(map[string]interface{})["date"].(string)
 
-	return &GitHubRepoInfo{
+	return &common.GitHubRepoInfo{
 		RepositoryName:   repoData["name"].(string),
 		Watchers:         int(repoData["watchers_count"].(float64)),
 		Stars:            int(repoData["stargazers_count"].(float64)),

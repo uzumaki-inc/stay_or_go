@@ -12,7 +12,7 @@ import (
 
 // var greeting string
 var (
-	fileName           string
+	filePath           string
 	outputFormat       string
 	githubToken        string
 	supportedLanguages = []string{"ruby", "go"}
@@ -54,8 +54,8 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
-		if fileName == "" {
-			fileName = languageConfigMap[language]
+		if filePath == "" {
+			filePath = languageConfigMap[language]
 		}
 
 		if !supportedOutputFormats[outputFormat] {
@@ -73,34 +73,32 @@ to quickly create a Cobra application.`,
 		if githubToken == "" {
 			githubToken = os.Getenv("GITHUB_TOKEN")
 			if githubToken == "" {
-				fmt.Println("Please provide a GitHub token using the --github-token flag or set the GITHUB_TOKEN environment variable")
+				fmt.Println(`Please provide a GitHub token using the --github-token flag
+			 or set the GITHUB_TOKEN environment variable`)
 				os.Exit(1)
 			}
 		}
 
 		fmt.Println("Language", language)
-		fmt.Println("Reading file:", fileName)
+		fmt.Println("Reading file:", filePath)
 		fmt.Println("Output format:", outputFormat)
 
 		p := parser.SelectParser(language) // 言語に合わせたパーサーを選択
-		result := p.Parse(fileName)        // パーサーでファイルをパース
-		// fmt.Println("Parse result:", result)
+		result := p.Parse(filePath)        // パーサーでファイルをパース
 
 		p.GetRepositoryUrl(result)
-		fmt.Println("GetRepositoryUrl result:", result)
-
-		// TODO resultを入力に渡せるようにする
-		libraryRepos := map[string]string{
-			"rails":    "https://github.com/rails/rails",
-			"nokogiri": "https://github.com/sparklemotion/nokogiri",
-			"nocodb":   "https://github.com/konyu/nocodb-seed-heroku",
+		fmt.Println("GetRepositoryUrl result:")
+		for _, info := range result {
+			fmt.Println(info.LibInfo)
 		}
+		fmt.Println("=====================")
 
-		a := analyzer.NewGitHubRepoAnalyzer(githubToken, libraryRepos)
-		infoList := a.FetchInfo()
+		a := analyzer.NewGitHubRepoAnalyzer(githubToken)
+		infoList := a.FetchGithubInfo(result)
 
 		for _, info := range infoList {
-			fmt.Printf("Repo: %s, Stars: %d, Forks: %d, Last Commit: %s, Archived: %t \n", info.RepositoryName, info.Stars, info.Forks, info.LastCommitDate, info.Archived)
+			fmt.Printf("Repo: %s, Stars: %d, Forks: %d, Last Commit: %s, Archived: %t \n",
+				info.RepositoryName, info.Stars, info.Forks, info.LastCommitDate, info.Archived)
 		}
 	},
 }
@@ -123,7 +121,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&fileName, "input", "i", "", "Specify the file to read")
+	rootCmd.Flags().StringVarP(&filePath, "input", "i", "", "Specify the file to read")
 	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "markdown", "Specify the output format (csv, tsv, markdown)")
 	rootCmd.Flags().StringVarP(&githubToken, "github-token", "g", "", "GitHub token for authentication")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")

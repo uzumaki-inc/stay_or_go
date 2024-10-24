@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/konyu/StayOrGo/common"
 )
 
 type RubyParser struct{}
@@ -17,8 +19,8 @@ type Repository struct {
 	HomepageURI   string `json:"homepage_uri"`
 }
 
-func (p RubyParser) Parse(file string) []LibInfo {
-	var libInfoList []LibInfo
+func (p RubyParser) Parse(file string) []common.AnalyzedLibInfo {
+	var AnalyzedLibInfoList []common.AnalyzedLibInfo
 
 	f, err := os.Open(file)
 	if err != nil {
@@ -39,7 +41,8 @@ func (p RubyParser) Parse(file string) []LibInfo {
 			continue
 		}
 		gemName := strings.Trim(parts[1], `'" ,`)
-		newLib := LibInfo{Name: gemName, Skip: false}
+		newLib := common.LibInfo{Name: gemName}
+		newALI := common.AnalyzedLibInfo{Skip: false, LibInfo: newLib}
 
 		// ここ以降のpartsはカンマ区切りでパースする
 		combinedParts := strings.Join(parts[2:], " ")
@@ -57,30 +60,41 @@ func (p RubyParser) Parse(file string) []LibInfo {
 
 			// cleanedPartがハッシュ形式を表すかチェックし、NGキーが含まれているか判定
 			for _, ngKey := range ngKeys {
+				fmt.Println(ngKey)
 				if strings.HasPrefix(cleanedPart, ":"+ngKey+" ") || strings.HasPrefix(cleanedPart, ngKey+":") {
-					newLib.Skip = true
+					newALI.Skip = true
+					newALI.SkipReason = "does not support libraries hosted outside of Github"
+
 					break // NGキーが見つかったらこれ以上チェックする必要はない
 				}
 			}
 			newLib.Others = append(newLib.Others, cleanedPart)
 		}
 
-		libInfoList = append(libInfoList, newLib)
+		AnalyzedLibInfoList = append(AnalyzedLibInfoList, newALI)
 	}
 
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
 
-	return libInfoList
+	return AnalyzedLibInfoList
 }
 
-func (p RubyParser) GetRepositoryUrl(libInfoList []LibInfo) []LibInfo {
-	for i, _ := range libInfoList {
-		libInfo := &libInfoList[i] // ポインタを取得
+func (p RubyParser) GetRepositoryUrl(AnalyzedLibInfoList []common.AnalyzedLibInfo) []common.AnalyzedLibInfo {
+	for i, _ := range AnalyzedLibInfoList {
+		analyzedLibInfo := &AnalyzedLibInfoList[i] // ポインタを取得
+		libInfo := &AnalyzedLibInfoList[i].LibInfo
 		name := libInfo.Name
+		if analyzedLibInfo.Skip {
+			continue
+		}
+
 		repoURL, err := p.getGitHubRepositoryURL(name)
 		if err != nil {
+			analyzedLibInfo.Skip = true
+			analyzedLibInfo.SkipReason = "does not support libraries hosted outside of Github"
+
 			fmt.Printf("%s: %s\n", name, err.Error())
 			continue
 		}
@@ -88,7 +102,7 @@ func (p RubyParser) GetRepositoryUrl(libInfoList []LibInfo) []LibInfo {
 		libInfo.RepositoryUrl = repoURL
 		fmt.Printf("GitHub repository URL for %s: %s\n", name, repoURL)
 	}
-	return libInfoList
+	return AnalyzedLibInfoList
 }
 
 func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {
