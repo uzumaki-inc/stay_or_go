@@ -47,8 +47,10 @@ Thumbs.db
 *.tmp
 *.temp
 
+tmp/*
 # GolangCI-Lintのキャッシュ
 .golangci.*
+!.golangci.yml
 
 # Goのワークスペースファイル
 go.work

@@ -1,0 +1,18 @@
+[build]
+# ビルドコマンド
+cmd = "git diff --name-only | grep '.go'| xargs golangci-lint run && go build -o ./tmp/main ."
+# cmd = "go build -o ./tmp/main ."
+
+
+# ビルドの対象ディレクトリ
+bin = "tmp/main"
+full_bin = "APP_ENV=dev APP_USER=air ./tmp/main"
+
+# ビルド対象のファイル
+include_ext = ["go", "tmpl", "html"]
+
+# 除外するディレクトリやファイル
+exclude_dir = ["tmp", "vendor", "node_modules"]
+
+# ビルド完了後の通知
+notify_on_complete = true

@@ -1,0 +1,14 @@
+run:
+  timeout: 5m
+
+linters:
+  enable-all: true
+  disable:
+    - gomnd # deprecated
+    - godot # コメントにピリオド必須はいらない
+    - execinquery # deprecated
+    - forbidigo # CLIツールでfmt.Printが使えないと困るため
+    - gochecknoinits # initメソッドを有効化する
+    - depguard # cmdからimportできなくなるため
+    - gochecknoglobals # globalな変数の利用を許可する(フラグで利用するため フラグで利用する変数はマジックコメントで退避してもいいかも
+    - exportloopref # deprecated
