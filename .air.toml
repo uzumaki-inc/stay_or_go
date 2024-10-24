@@ -1,7 +1,8 @@
 [build]
 # ビルドコマンド
-cmd = "git diff --name-only | grep '.go'| xargs golangci-lint run && go build -o ./tmp/main ."
-# cmd = "go build -o ./tmp/main ."
+cmd = "go build -o ./tmp/main ."
+# ビルド前に実行する
+pre_cmd = ["git diff --name-only | grep '.go'| xargs golangci-lint run"]
 
 
 # ビルドの対象ディレクトリ
@@ -13,6 +14,3 @@ include_ext = ["go", "tmpl", "html"]
 
 # 除外するディレクトリやファイル
 exclude_dir = ["tmp", "vendor", "node_modules"]
-
-# ビルド完了後の通知
-notify_on_complete = true
