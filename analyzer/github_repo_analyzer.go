@@ -110,11 +110,10 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*common.GitHubRepoIn
 	}, nil
 }
 
-// fetchJSON sends a GET request and returns the parsed JSON object (map)
-func fetchJSON(client *http.Client, url string, headers map[string]string) (map[string]interface{}, error) {
+func fetchJSONData(client *http.Client, url string, headers map[string]string, result interface{}) error {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	for key, value := range headers {
@@ -123,39 +122,28 @@ func fetchJSON(client *http.Client, url string, headers map[string]string) (map[
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
+	if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+		return err
 	}
-	return result, nil
+	return nil
+}
+
+// fetchJSON sends a GET request and returns the parsed JSON object (map)
+func fetchJSON(client *http.Client, url string, headers map[string]string) (map[string]interface{}, error) {
+	var result map[string]interface{}
+	err := fetchJSONData(client, url, headers, &result)
+	return result, err
 }
 
 // fetchJSONArray sends a GET request and returns the parsed JSON array (slice)
 func fetchJSONArray(client *http.Client, url string, headers map[string]string) ([]interface{}, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var result []interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-	return result, nil
+	err := fetchJSONData(client, url, headers, &result)
+	return result, err
 }
 
 // indexOf returns the index of the element in a slice, or -1 if not found
