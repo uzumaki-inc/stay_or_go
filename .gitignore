@@ -48,6 +48,8 @@ Thumbs.db
 *.temp
 
 tmp/*
+.env
+
 # GolangCI-Lintのキャッシュ
 .golangci.*
 !.golangci.yml
