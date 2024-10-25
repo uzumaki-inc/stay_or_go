@@ -6,7 +6,7 @@ import (
 
 type Parser interface {
 	Parse(file string) []common.AnalyzedLibInfo
-	GetRepositoryUrl(AnalyzedLibInfoList []common.AnalyzedLibInfo) []common.AnalyzedLibInfo
+	GetRepositoryURL(AnalyzedLibInfoList []common.AnalyzedLibInfo) []common.AnalyzedLibInfo
 }
 
 var selectedParser Parser

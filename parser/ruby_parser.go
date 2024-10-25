@@ -81,11 +81,12 @@ func (p RubyParser) Parse(file string) []common.AnalyzedLibInfo {
 	return AnalyzedLibInfoList
 }
 
-func (p RubyParser) GetRepositoryUrl(AnalyzedLibInfoList []common.AnalyzedLibInfo) []common.AnalyzedLibInfo {
-	for i, _ := range AnalyzedLibInfoList {
-		analyzedLibInfo := &AnalyzedLibInfoList[i] // ポインタを取得
-		libInfo := &AnalyzedLibInfoList[i].LibInfo
+func (p RubyParser) GetRepositoryURL(analyzedLibInfoList []common.AnalyzedLibInfo) []common.AnalyzedLibInfo {
+	for i, _ := range analyzedLibInfoList {
+		analyzedLibInfo := &analyzedLibInfoList[i] // ポインタを取得
+		libInfo := &analyzedLibInfoList[i].LibInfo
 		name := libInfo.Name
+
 		if analyzedLibInfo.Skip {
 			continue
 		}
@@ -102,7 +103,7 @@ func (p RubyParser) GetRepositoryUrl(AnalyzedLibInfoList []common.AnalyzedLibInf
 		libInfo.RepositoryUrl = repoURL
 		fmt.Printf("GitHub repository URL for %s: %s\n", name, repoURL)
 	}
-	return AnalyzedLibInfoList
+	return analyzedLibInfoList
 }
 
 func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {

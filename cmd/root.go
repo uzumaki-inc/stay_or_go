@@ -86,8 +86,8 @@ to quickly create a Cobra application.`,
 		p := parser.SelectParser(language) // 言語に合わせたパーサーを選択
 		result := p.Parse(filePath)        // パーサーでファイルをパース
 
-		p.GetRepositoryUrl(result)
-		fmt.Println("GetRepositoryUrl result:")
+		p.GetRepositoryURL(result)
+		fmt.Println("GetRepositoryURL result:")
 		for _, info := range result {
 			fmt.Println(info.LibInfo)
 		}
