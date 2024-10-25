@@ -1,16 +1,20 @@
 [build]
-# ビルドコマンド
+# Command to build the Go application
 cmd = "go build -o ./tmp/main ."
-# ビルド前に実行する
-pre_cmd = ["git diff --name-only | grep '.go'| xargs golangci-lint run"]
 
+# Pre-build command:
+# this command finds changed Go files, groups them by directory,
+# and runs golangci-lint once per directory for the changed files.
+pre_cmd = [
+    "sh -c 'git diff --name-only | grep \"\\.go\" | xargs -I {} dirname {} | sort -u | xargs -I {} sh -c \"git diff --name-only | grep {}/.*\\\\.go | xargs golangci-lint run\"'",
+]
 
-# ビルドの対象ディレクトリ
+# Directory for the build output
 bin = "tmp/main"
 full_bin = "APP_ENV=dev APP_USER=air ./tmp/main"
 
-# ビルド対象のファイル
+# File extensions to watch for changes and trigger a build
 include_ext = ["go", "tmpl", "html"]
 
-# 除外するディレクトリやファイル
+# Directories and files to exclude from the build process
 exclude_dir = ["tmp", "vendor", "node_modules"]
