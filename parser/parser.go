@@ -1,12 +1,16 @@
 package parser
 
-import (
-	"github.com/konyu/StayOrGo/common"
-)
+type LibInfo struct {
+	Skip          bool     // スキップするかどうかのフラグ
+	SkipReason    string   // スキップ理由
+	Name          string   // ライブラリの名前
+	Others        []string // その他のライブラリの設定値
+	RepositoryUrl string   // githubのりポトリのURL
+}
 
 type Parser interface {
-	Parse(file string) []common.AnalyzedLibInfo
-	GetRepositoryURL(AnalyzedLibInfoList []common.AnalyzedLibInfo) []common.AnalyzedLibInfo
+	Parse(file string) []LibInfo
+	GetRepositoryURL(AnalyzedLibInfoList []LibInfo) []LibInfo
 }
 
 var selectedParser Parser
@@ -17,7 +21,7 @@ func SelectParser(language string) Parser {
 	case "ruby":
 		parser = RubyParser{}
 	case "go":
-		// parser = GoParser{}
+		parser = GoParser{}
 	default:
 		panic("Error: Unsupported language: " + language)
 	}
@@ -25,7 +29,7 @@ func SelectParser(language string) Parser {
 	return parser
 }
 
-func Parse(file string) []common.AnalyzedLibInfo {
+func Parse(file string) []LibInfo {
 	if selectedParser == nil {
 		panic("Error: Parser not selected")
 	}

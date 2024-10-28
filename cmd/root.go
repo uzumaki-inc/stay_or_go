@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/konyu/StayOrGo/analyzer"
+	"github.com/konyu/StayOrGo/common"
 	"github.com/konyu/StayOrGo/parser"
 	"github.com/spf13/cobra"
 )
@@ -26,6 +27,29 @@ var (
 		"markdown": true,
 	}
 )
+
+type AnalyzedLibInfo struct {
+	LibInfo        *parser.LibInfo
+	GitHubRepoInfo *analyzer.GitHubRepoInfo
+}
+
+func (ainfo AnalyzedLibInfo) Skip() bool {
+	if ainfo.LibInfo.Skip == true {
+		return true
+	} else if ainfo.GitHubRepoInfo.Skip {
+		return true
+	}
+	return false
+}
+
+func (ainfo AnalyzedLibInfo) SkipReason() string {
+	if ainfo.LibInfo.Skip == true {
+		return ainfo.LibInfo.SkipReason
+	} else if ainfo.GitHubRepoInfo.Skip {
+		return ainfo.GitHubRepoInfo.SkipReason
+	}
+	return "No skip reason"
+}
 
 // 引数を全部設定するlintを回避
 //
@@ -83,23 +107,56 @@ to quickly create a Cobra application.`,
 		fmt.Println("Reading file:", filePath)
 		fmt.Println("Output format:", outputFormat)
 
+		// TODO: パラメータをファイルから読み込めるようにする
+		weights := common.NewParameterWeights()
+		a := analyzer.NewGitHubRepoAnalyzer(githubToken, weights)
+
 		p := parser.SelectParser(language) // 言語に合わせたパーサーを選択
 		result := p.Parse(filePath)        // パーサーでファイルをパース
 
 		p.GetRepositoryURL(result)
 		fmt.Println("GetRepositoryURL result:")
 		for _, info := range result {
-			fmt.Println(info.LibInfo)
+			fmt.Println(info)
 		}
+
+		var repoUrls []string
+		for _, info := range result {
+			if info.Skip == false {
+				repoUrls = append(repoUrls, info.RepositoryUrl)
+			}
+		}
+
 		fmt.Println("=====================")
+		gitHubRepoInfos := a.FetchGithubInfo(repoUrls)
+		// analyzedLibInfo.GitHubRepoInfo = gitHubRepoInfo
+		// infoList := a.FetchGithubInfo(result)
 
-		a := analyzer.NewGitHubRepoAnalyzer(githubToken)
-		infoList := a.FetchGithubInfo(result)
+		// for _, info := range gitHubRepoInfos {
+		// 	fmt.Printf("Repo: %s, Stars: %d, Forks: %d, Last Commit: %s, Archived: %t, Score: %d \n",
+		// 		info.RepositoryName, info.Stars, info.Forks, info.LastCommitDate, info.Archived, info.Score)
+		// }
 
-		for _, info := range infoList {
-			fmt.Printf("Repo: %s, Stars: %d, Forks: %d, Last Commit: %s, Archived: %t \n",
-				info.RepositoryName, info.Stars, info.Forks, info.LastCommitDate, info.Archived)
+		var analyzedLibInfos []AnalyzedLibInfo
+		var j = 0
+		for i, info := range result {
+			analyzedLibInfo := AnalyzedLibInfo{
+				LibInfo: &info,
+			}
+			if i <= len(gitHubRepoInfos) && info.RepositoryUrl == gitHubRepoInfos[j].GithubRepoUrl {
+				analyzedLibInfo.GitHubRepoInfo = &gitHubRepoInfos[j]
+				j++
+			}
+			analyzedLibInfos = append(analyzedLibInfos, analyzedLibInfo)
 		}
+
+		for _, info := range analyzedLibInfos {
+			if info.GitHubRepoInfo != nil {
+				fmt.Printf("Repo: %s, Stars: %d, Forks: %d, Last Commit: %s, Archived: %t, Score: %d \n",
+					info.GitHubRepoInfo.RepositoryName, info.GitHubRepoInfo.Stars, info.GitHubRepoInfo.Forks, info.GitHubRepoInfo.LastCommitDate, info.GitHubRepoInfo.Archived, info.GitHubRepoInfo.Score)
+			}
+		}
+
 	},
 }
 

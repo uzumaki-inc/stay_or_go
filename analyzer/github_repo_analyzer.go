@@ -5,42 +5,57 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/konyu/StayOrGo/common"
 )
 
-type GitHubRepoAnalyzer struct {
-	githubToken string
+type GitHubRepoInfo struct {
+	RepositoryName   string
+	Watchers         int
+	Stars            int
+	Forks            int
+	OpenPullRequests int
+	OpenIssues       int
+	LastCommitDate   string
+	LibraryName      string
+	GithubRepoUrl    string
+	Archived         bool
+	Score            int
+	Skip             bool   // スキップするかどうかのフラグ
+	SkipReason       string // スキップ理由
 }
 
-func NewGitHubRepoAnalyzer(token string) *GitHubRepoAnalyzer {
+type GitHubRepoAnalyzer struct {
+	githubToken string
+	weights     common.ParameterWeights
+}
+
+func NewGitHubRepoAnalyzer(token string, weights common.ParameterWeights) *GitHubRepoAnalyzer {
 	return &GitHubRepoAnalyzer{
 		githubToken: token,
+		weights:     weights,
 	}
 }
 
 // FetchInfo fetches information for each repository
-func (g *GitHubRepoAnalyzer) FetchGithubInfo(analyzedLibInfo []common.AnalyzedLibInfo) []common.GitHubRepoInfo {
-	var libraryInfoList []common.GitHubRepoInfo
-	for _, info := range analyzedLibInfo {
-		if info.Skip {
-			continue
-		}
-		name := info.LibInfo.Name
-		repoUrl := info.LibInfo.RepositoryUrl
+func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo {
+	var libraryInfoList []GitHubRepoInfo
+	for _, repoUrl := range repositoryUrls {
+		// name := info.LibInfo.Name
+		// repoUrl := info.LibInfo.RepositoryUrl
 
-		fmt.Printf("Getting GitHub info for %s: %s\n", info.LibInfo.Name, info.LibInfo.RepositoryUrl)
+		fmt.Printf("Getting GitHub info for %s\n", repoUrl)
 
 		libraryInfo, err := g.getGitHubInfo(repoUrl)
 		if err != nil {
-			info.Skip = true
-			info.SkipReason = "Failed getting" + name + "GitHub info:"
-			fmt.Printf("Failed getting %s GitHub info: %v\n", name, err)
+			libraryInfo.Skip = true
+			libraryInfo.SkipReason = "Failed getting" + repoUrl + "GitHub info:"
+			fmt.Printf("Failed getting %s GitHub info: %v\n", repoUrl, err)
 			continue
 		}
 
 		if libraryInfo != nil {
-			libraryInfo.LibraryName = name
 			libraryInfo.GithubRepoUrl = repoUrl
 			libraryInfoList = append(libraryInfoList, *libraryInfo)
 		}
@@ -49,7 +64,7 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(analyzedLibInfo []common.AnalyzedLi
 }
 
 // getGitHubInfo fetches repository info from GitHub API
-func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*common.GitHubRepoInfo, error) {
+func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, error) {
 	// githubToken := os.Getenv("GITHUB_TOKEN")
 	if g.githubToken == "" {
 		return nil, fmt.Errorf("GitHub token not set")
@@ -98,7 +113,7 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*common.GitHubRepoIn
 
 	lastCommitDate := commitData["commit"].(map[string]interface{})["committer"].(map[string]interface{})["date"].(string)
 
-	return &common.GitHubRepoInfo{
+	repoInfo := &GitHubRepoInfo{
 		RepositoryName:   repoData["name"].(string),
 		Watchers:         int(repoData["watchers_count"].(float64)),
 		Stars:            int(repoData["stargazers_count"].(float64)),
@@ -107,7 +122,52 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*common.GitHubRepoIn
 		OpenIssues:       int(repoData["open_issues_count"].(float64)),
 		LastCommitDate:   lastCommitDate,
 		Archived:         repoData["archived"].(bool),
-	}, nil
+	}
+	calcScore(repoInfo, &g.weights)
+
+	return repoInfo, nil
+}
+
+func calcScore(repoInfo *GitHubRepoInfo, weights *common.ParameterWeights) {
+	fmt.Println(weights)
+
+	days, err := daysSince(repoInfo.LastCommitDate)
+	if err != nil {
+		repoInfo.Skip = true
+		repoInfo.SkipReason = "Date Format Error: " + repoInfo.LastCommitDate
+		fmt.Println("Date Format Error:", err)
+	} else {
+		fmt.Printf("経過日数: %d 日\n", days)
+	}
+	var score = float64(repoInfo.Stars) * weights.Score
+	score += float64(repoInfo.Forks) * weights.Forks
+	score += float64(repoInfo.OpenPullRequests) * weights.OpenPullRequests
+	score += float64(repoInfo.OpenIssues) * weights.OpenIssues
+	score += float64(days) * weights.LastCommitDate
+	intArchived := map[bool]float64{true: 1.0, false: 0.0}[repoInfo.Archived]
+	score += (intArchived) * weights.Archived
+	// stars * 0.1
+	// forks * 0.1
+	// open_pull_requests * 0.01 //OpenしているPRの数 startsやwatcherに比べると影響は少ない
+	// open_issues* 0.01 //OpenしているIssueの数
+	// **-** 2024/02/13からlast_commit_dateまでの日数  * 0.2) //かつて人気があってもメンテナンスされていないものはスコアが下がるように調整
+
+	repoInfo.Score = int(score)
+}
+
+// 日付文字列から現在日までの経過日数を返す関数
+func daysSince(dateStr string) (int, error) {
+	// 入力された日付文字列をパース（UTCフォーマット）
+	layout := "2006-01-02T15:04:05Z"
+	parsedTime, err := time.Parse(layout, dateStr)
+	if err != nil {
+		return 0, err
+	}
+	currentTime := time.Now()
+	duration := currentTime.Sub(parsedTime)
+	days := int(duration.Hours() / 24)
+
+	return days, nil
 }
 
 func fetchJSONData(client *http.Client, url string, headers map[string]string, result interface{}) error {
