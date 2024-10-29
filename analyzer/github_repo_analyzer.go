@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/konyu/StayOrGo/common"
 )
 
 type GitHubRepoInfo struct {
@@ -28,10 +26,10 @@ type GitHubRepoInfo struct {
 
 type GitHubRepoAnalyzer struct {
 	githubToken string
-	weights     common.ParameterWeights
+	weights     ParameterWeights
 }
 
-func NewGitHubRepoAnalyzer(token string, weights common.ParameterWeights) *GitHubRepoAnalyzer {
+func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAnalyzer {
 	return &GitHubRepoAnalyzer{
 		githubToken: token,
 		weights:     weights,
@@ -128,7 +126,7 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, err
 	return repoInfo, nil
 }
 
-func calcScore(repoInfo *GitHubRepoInfo, weights *common.ParameterWeights) {
+func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
 	fmt.Println(weights)
 
 	days, err := daysSince(repoInfo.LastCommitDate)
@@ -146,11 +144,6 @@ func calcScore(repoInfo *GitHubRepoInfo, weights *common.ParameterWeights) {
 	score += float64(days) * weights.LastCommitDate
 	intArchived := map[bool]float64{true: 1.0, false: 0.0}[repoInfo.Archived]
 	score += (intArchived) * weights.Archived
-	// stars * 0.1
-	// forks * 0.1
-	// open_pull_requests * 0.01 //OpenしているPRの数 startsやwatcherに比べると影響は少ない
-	// open_issues* 0.01 //OpenしているIssueの数
-	// **-** 2024/02/13からlast_commit_dateまでの日数  * 0.2) //かつて人気があってもメンテナンスされていないものはスコアが下がるように調整
 
 	repoInfo.Score = int(score)
 }
