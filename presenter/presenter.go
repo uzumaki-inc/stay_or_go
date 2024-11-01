@@ -2,6 +2,7 @@ package presenter
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/konyu/StayOrGo/analyzer"
 	"github.com/konyu/StayOrGo/parser"
@@ -177,6 +178,41 @@ func Display(p Presenter) {
 	}
 }
 
+func makeBody(analyzedLibInfos []AnalyzedLibInfo, separator string) []string {
+	rows := []string{}
+	for _, info := range analyzedLibInfos {
+		row := ""
+		val := reflect.ValueOf(info)
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
+		}
+		for i, header := range headerString {
+			method := val.MethodByName(header)
+			if method.IsValid() {
+				result := method.Call(nil)
+				var resultStr interface{}
+				if len(result) > 0 && result[0].IsValid() && !result[0].IsNil() {
+					resultStr = result[0].Elem().Interface()
+				} else {
+					resultStr = "N/A"
+				}
+				row += fmt.Sprintf("%v", resultStr)
+				// 最後の要素でない場合にのみseparatorを追加
+				if i < len(headerString)-1 {
+					row += separator
+				}
+			} else {
+				panic(fmt.Sprintf("method %s not found in %v", header, info))
+			}
+		}
+		if separator == "|" {
+			row = "|" + row + "|"
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
 var headerString = []string{
 	"Name",
 	"RepositoryUrl",
@@ -201,7 +237,7 @@ func SelectPresenter(format string, analyzedLibInfos []AnalyzedLibInfo) Presente
 	case "tsv":
 		presenter = TsvPresenter{analyzedLibInfos}
 	case "csv":
-		// presenter = CsvPresenter{analyzedLibInfos}
+		presenter = CsvPresenter{analyzedLibInfos}
 	default:
 		presenter = MarkdownPresenter{analyzedLibInfos}
 	}

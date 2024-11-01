@@ -1,8 +1,6 @@
 package presenter
 
 import (
-	"fmt"
-	"reflect"
 	"strings"
 )
 
@@ -25,30 +23,5 @@ func (p MarkdownPresenter) makeHeader() []string {
 }
 
 func (p MarkdownPresenter) makeBody() []string {
-	rows := []string{}
-	for _, info := range p.analyzedLibInfos {
-		row := "| "
-		// reflectを使用して、headerに対応するフィールドを取得
-		val := reflect.ValueOf(info)
-		if val.Kind() == reflect.Ptr {
-			val = val.Elem()
-		}
-		for _, header := range headerString {
-			method := val.MethodByName(header)
-			if method.IsValid() {
-				result := method.Call(nil)
-				var resultStr interface{}
-				if len(result) > 0 && result[0].IsValid() && !result[0].IsNil() {
-					resultStr = result[0].Elem().Interface()
-				} else {
-					resultStr = "N/A"
-				}
-				row += fmt.Sprintf("%v | ", resultStr)
-			} else {
-				panic(fmt.Sprintf("method %s not found in %v", header, info))
-			}
-		}
-		rows = append(rows, row)
-	}
-	return rows
+	return makeBody(p.analyzedLibInfos, "|")
 }

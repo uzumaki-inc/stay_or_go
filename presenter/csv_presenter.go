@@ -1,5 +1,9 @@
 package presenter
 
+import (
+	"strings"
+)
+
 type CsvPresenter struct {
 	analyzedLibInfos []AnalyzedLibInfo
 }
@@ -9,9 +13,10 @@ func (p CsvPresenter) Display() {
 }
 
 func (p CsvPresenter) makeHeader() []string {
-	return make([]string, 0)
+	headerRow := strings.Join(headerString, ", ")
+	return []string{headerRow}
 }
 
 func (p CsvPresenter) makeBody() []string {
-	return make([]string, 0)
+	return makeBody(p.analyzedLibInfos, ", ")
 }

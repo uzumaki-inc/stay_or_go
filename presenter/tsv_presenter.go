@@ -18,5 +18,5 @@ func (p TsvPresenter) makeHeader() []string {
 }
 
 func (p TsvPresenter) makeBody() []string {
-	return make([]string, 0)
+	return makeBody(p.analyzedLibInfos, "\t")
 }
