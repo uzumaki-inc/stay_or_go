@@ -1,11 +1,22 @@
 package presenter
 
-// type TsvPresenter struct {
-// 	analyzedLibInfos []AnalyzedLibInfo
-// }
+import (
+	"strings"
+)
 
-// func (p TsvPresenter) Display([]AnalyzedLibInfo) {
-// }
-// func (p TsvPresenter) makeHeader() []string {
-// 	return make([]string, 0)
-// }
+type TsvPresenter struct {
+	analyzedLibInfos []AnalyzedLibInfo
+}
+
+func (p TsvPresenter) Display() {
+	Display(p)
+}
+
+func (p TsvPresenter) makeHeader() []string {
+	headerRow := strings.Join(headerString, "\t")
+	return []string{headerRow}
+}
+
+func (p TsvPresenter) makeBody() []string {
+	return make([]string, 0)
+}

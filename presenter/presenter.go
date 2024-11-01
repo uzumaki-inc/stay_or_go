@@ -163,6 +163,18 @@ func MakeAnalyzedLibInfoList(libInfoList []parser.LibInfo, gitHubRepoInfos []ana
 type Presenter interface {
 	Display()
 	makeHeader() []string
+	makeBody() []string
+}
+
+func Display(p Presenter) {
+	header := p.makeHeader()
+	for _, line := range header {
+		fmt.Println(line)
+	}
+	body := p.makeBody()
+	for _, line := range body {
+		fmt.Println(line)
+	}
 }
 
 var headerString = []string{
@@ -187,7 +199,7 @@ func SelectPresenter(format string, analyzedLibInfos []AnalyzedLibInfo) Presente
 	var presenter Presenter
 	switch format {
 	case "tsv":
-		// presenter = TsvPresenter{analyzedLibInfos}
+		presenter = TsvPresenter{analyzedLibInfos}
 	case "csv":
 		// presenter = CsvPresenter{analyzedLibInfos}
 	default:
