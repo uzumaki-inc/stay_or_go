@@ -128,7 +128,9 @@ to quickly create a Cobra application.`,
 		}
 
 		gitHubRepoInfos := analyzer.FetchGithubInfo(repoUrls)
-		presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
+		analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
+		pp := presenter.SelectPresenter(outputFormat, analyzedLibInfos)
+		pp.Display()
 	},
 }
 
