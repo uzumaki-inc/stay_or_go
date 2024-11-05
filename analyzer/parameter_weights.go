@@ -13,9 +13,12 @@ type ParameterWeights struct {
 
 // stars * 0.1
 // forks * 0.1
-// open_pull_requests * 0.01 //OpenしているPRの数 startsやwatcherに比べると影響は少ない
-// open_issues* 0.01 //OpenしているIssueの数
-// 実行日からlast_commit_dateまでの日数  * 0.2) //かつて人気があってもメンテナンスされていないものはスコアが下がるように調整
+// The number of open PRs and issues has less impact compared to stars and watchers
+// open_pull_requests * 0.01
+// open_issues * 0.01
+// Adjusts the score to decrease for projects that were once popular but are no longer maintained
+// Days from the execution date to the last commit date * 0.2
+// If archived is true, it is not maintained, so it is heavily penalized
 func NewParameterWeights() ParameterWeights {
 	return ParameterWeights{
 		Watchers:         0.1,
@@ -24,6 +27,6 @@ func NewParameterWeights() ParameterWeights {
 		OpenPullRequests: 0.01,
 		OpenIssues:       0.01,
 		LastCommitDate:   -0.2,
-		Archived:         -100000000,
+		Archived:         -1000000,
 	}
 }
