@@ -14,7 +14,7 @@ import (
 
 type RubyParser struct{}
 
-type Repository struct {
+type RubyRepository struct {
 	SourceCodeURI string `json:"source_code_uri"`
 	HomepageURI   string `json:"homepage_uri"`
 }
@@ -119,11 +119,12 @@ func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {
 		return "", fmt.Errorf("failed to read response body")
 	}
 
-	var repo Repository
+	var repo RubyRepository
 	err = json.Unmarshal(bodyBytes, &repo)
 	if err != nil {
 		return "", fmt.Errorf("failed to unmarshal JSON response")
 	}
+	fmt.Println(repo)
 
 	repoURL := repo.SourceCodeURI
 	if repoURL == "" {
