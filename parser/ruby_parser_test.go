@@ -1,107 +1,77 @@
-package parser
+package parser_test
 
 import (
 	"os"
 	"testing"
+
+	"github.com/jarcoal/httpmock"
+	"github.com/konyu/StayOrGo/parser"
+	"github.com/stretchr/testify/assert"
 )
 
-// RubyParser構造体のテスト
 func TestRubyParser_Parse(t *testing.T) {
-	tests := []struct {
-		name     string
-		content  string
-		expected []LibInfo
-	}{
-		{
-			name:    "Valid gem with no special options",
-			content: `gem "rails"`,
-			expected: []LibInfo{
-				{
-					Name:   `"rails"`,
-					Skip:   false,
-					Others: []string{},
-				},
-			},
-		},
-		{
-			name:    "Gem with source option (should skip)",
-			content: `gem "rails", :source => "https://example.com"`,
-			expected: []LibInfo{
-				{
-					Name:   `"rails",`, // 修正: クオートとカンマを含める
-					Skip:   true,
-					Others: []string{`:source => "https://example.com"`},
-				},
-			},
-		},
-		{
-			name:    "Gem with git option (should skip)",
-			content: `gem "nokogiri", :git => "git://github.com/sparklemotion/nokogiri.git", :require => false`,
-			expected: []LibInfo{
-				{
-					Name:   `"nokogiri",`, // 修正: クオートとカンマを含める
-					Skip:   true,
-					Others: []string{`:git => "git://github.com/sparklemotion/nokogiri.git"`, `:require => false`},
-				},
-			},
-		},
-		{
-			name:    "Gem with non-NG options (should not skip)",
-			content: `gem 'pg', :require => false`,
-			expected: []LibInfo{
-				{
-					Name:   `'pg',`, // 修正: クオートとカンマを含める
-					Skip:   false,
-					Others: []string{`:require => false`},
-				},
-			},
-		},
+	// Create a temporary file for testing
+	content := `gem 'rails', '~> 6.0'
+gem 'nokogiri', git: 'https://github.com/sparklemotion/nokogiri.git'
+gem 'puma'`
+	tempFile, err := os.CreateTemp("", "testfile-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempFile.Close()
+	defer os.Remove(tempFile.Name())
+
+	// Write content to the file
+	_, err = tempFile.WriteString(content)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// テスト用の一時ファイルを作成
-			tmpfile, err := os.CreateTemp("", "testfile")
-			if err != nil {
-				t.Fatalf("failed to create temp file: %v", err)
-			}
-			defer os.Remove(tmpfile.Name()) // テスト終了後に一時ファイルを削除
+	// Parse the file using RubyParser
+	p := parser.RubyParser{}
+	libInfoList := p.Parse(tempFile.Name())
 
-			// テスト内容を書き込む
-			if _, err := tmpfile.Write([]byte(tt.content)); err != nil {
-				t.Fatalf("failed to write to temp file: %v", err)
-			}
+	// Assertions
+	assert.Len(t, libInfoList, 3)
+	assert.Equal(t, "rails", libInfoList[0].Name)
+	assert.False(t, libInfoList[0].Skip)
+	assert.Equal(t, "nokogiri", libInfoList[1].Name)
+	assert.True(t, libInfoList[1].Skip)
+	assert.Equal(t, "does not support libraries hosted outside of Github", libInfoList[1].SkipReason)
+	assert.Equal(t, "puma", libInfoList[2].Name)
+	assert.False(t, libInfoList[2].Skip)
+}
 
-			// ファイルを閉じる
-			if err := tmpfile.Close(); err != nil {
-				t.Fatalf("failed to close temp file: %v", err)
-			}
+func TestRubyParser_GetRepositoryURL(t *testing.T) {
+	// Mock HTTP requests for rubygems API
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
 
-			// RubyParserを使ってファイルをパース
-			p := RubyParser{}
-			result := p.Parse(tmpfile.Name())
+	// Setup mock responses
+	httpmock.RegisterResponder("GET", "https://rubygems.org/api/v1/gems/rails.json",
+		httpmock.NewStringResponder(200, `{"source_code_uri": "https://github.com/rails/rails"}`))
 
-			// 結果をフィールドごとに比較する
-			if len(*result) != len(tt.expected) {
-				t.Fatalf("expected %d lib entries, but got %d", len(tt.expected), len(*result))
-			}
+	httpmock.RegisterResponder("GET", "https://rubygems.org/api/v1/gems/nokogiri.json",
+		httpmock.NewStringResponder(200, `{"homepage_uri": "https://github.com/sparklemotion/nokogiri"}`))
 
-			for i := range *result {
-				if (*result)[i].Name != tt.expected[i].Name {
-					t.Errorf("expected name %v, but got %v", tt.expected[i].Name, (*result)[i].Name)
-				}
-				if (*result)[i].Skip != tt.expected[i].Skip {
-					t.Errorf("expected skip %v, but got %v", tt.expected[i].Skip, (*result)[i].Skip)
-				}
-				if len((*result)[i].Others) != len(tt.expected[i].Others) {
-					t.Errorf("expected %d others, but got %d", len(tt.expected[i].Others), len((*result)[i].Others))
-				}
-				for j := range (*result)[i].Others {
-					if (*result)[i].Others[j] != tt.expected[i].Others[j] {
-						t.Errorf("expected other %v, but got %v", tt.expected[i].Others[j], (*result)[i].Others[j])
-					}
-				}
-			}
-		})
+	httpmock.RegisterResponder("GET", "https://rubygems.org/api/v1/gems/puma.json",
+		httpmock.NewStringResponder(200, `{"source_code_uri": ""}`))
+
+	// Create initial LibInfo list
+	libInfoList := []parser.LibInfo{
+		{Name: "rails"},
+		{Name: "nokogiri"},
+		{Name: "puma"},
 	}
+
+	// Run GetRepositoryURL method
+	p := parser.RubyParser{}
+	updatedLibInfoList := p.GetRepositoryURL(libInfoList)
+
+	// Assertions
+	assert.Equal(t, "https://github.com/rails/rails", updatedLibInfoList[0].RepositoryUrl)
+	assert.Equal(t, "https://github.com/sparklemotion/nokogiri", updatedLibInfoList[1].RepositoryUrl)
+	assert.Equal(t, "", updatedLibInfoList[2].RepositoryUrl)
+	assert.True(t, updatedLibInfoList[2].Skip)
+	assert.Equal(t, "Does not support libraries hosted outside of Github", updatedLibInfoList[2].SkipReason)
 }
