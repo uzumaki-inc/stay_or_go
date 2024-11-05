@@ -106,7 +106,7 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, err
 
 	repoInfo := &GitHubRepoInfo{
 		RepositoryName:   repoData["name"].(string),
-		Watchers:         int(repoData["watchers_count"].(float64)),
+		Watchers:         int(repoData["subscribers_count"].(float64)),
 		Stars:            int(repoData["stargazers_count"].(float64)),
 		Forks:            int(repoData["forks_count"].(float64)),
 		OpenPullRequests: openPullRequests,

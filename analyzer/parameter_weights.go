@@ -26,7 +26,7 @@ func NewParameterWeights() ParameterWeights {
 		Forks:            0.1,
 		OpenPullRequests: 0.01,
 		OpenIssues:       0.01,
-		LastCommitDate:   -0.2,
+		LastCommitDate:   -0.05,
 		Archived:         -1000000,
 	}
 }
