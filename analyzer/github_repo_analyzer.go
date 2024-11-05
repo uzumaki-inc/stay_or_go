@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/konyu/StayOrGo/utils"
 )
 
 type GitHubRepoInfo struct {
@@ -40,16 +42,13 @@ func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAn
 func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo {
 	var libraryInfoList []GitHubRepoInfo
 	for _, repoUrl := range repositoryUrls {
-		// name := info.LibInfo.Name
-		// repoUrl := info.LibInfo.RepositoryUrl
-
-		fmt.Printf("Getting GitHub info for %s\n", repoUrl)
+		utils.DebugPrintln("Fetching: " + repoUrl)
 
 		libraryInfo, err := g.getGitHubInfo(repoUrl)
 		if err != nil {
 			libraryInfo.Skip = true
-			libraryInfo.SkipReason = "Failed getting" + repoUrl + "GitHub info:"
-			fmt.Printf("Failed getting %s GitHub info: %v\n", repoUrl, err)
+			libraryInfo.SkipReason = "Failed fetching" + repoUrl + "from GitHub"
+			utils.StdErrorPrintln("Failed fetching %s, error details: %v", repoUrl, err)
 			continue
 		}
 
@@ -63,12 +62,10 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRe
 
 // getGitHubInfo fetches repository info from GitHub API
 func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, error) {
-	// githubToken := os.Getenv("GITHUB_TOKEN")
 	if g.githubToken == "" {
 		return nil, fmt.Errorf("GitHub token not set")
 	}
 
-	// Pre-process the repo URL
 	repoUrl = strings.TrimSuffix(repoUrl, "/")
 	parts := strings.Split(repoUrl, "/")
 
@@ -80,7 +77,6 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, err
 		owner, repo = parts[len(parts)-2], parts[len(parts)-1]
 	}
 
-	// Remove .git if present
 	repo = strings.TrimSuffix(repo, ".git")
 
 	client := &http.Client{}
@@ -92,8 +88,6 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, err
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println(g.githubToken)
-	// fmt.Println("Repo Requests Data:", repoData)
 
 	pullRequestsData, err := fetchJSONArray(client, fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls", owner, repo), headers)
 	if err != nil {
@@ -127,16 +121,13 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, err
 }
 
 func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
-	fmt.Println(weights)
-
 	days, err := daysSince(repoInfo.LastCommitDate)
 	if err != nil {
 		repoInfo.Skip = true
 		repoInfo.SkipReason = "Date Format Error: " + repoInfo.LastCommitDate
-		fmt.Println("Date Format Error:", err)
-	} else {
-		fmt.Printf("経過日数: %d 日\n", days)
+		utils.StdErrorPrintln("Date Format Error: %v", err)
 	}
+
 	var score = float64(repoInfo.Stars) * weights.Score
 	score += float64(repoInfo.Forks) * weights.Forks
 	score += float64(repoInfo.OpenPullRequests) * weights.OpenPullRequests

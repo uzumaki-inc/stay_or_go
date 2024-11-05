@@ -91,7 +91,7 @@ to quickly create a Cobra application.`,
 		weights := analyzer.NewParameterWeights()
 		analyzer := analyzer.NewGitHubRepoAnalyzer(githubToken, weights)
 
-		utils.StdErrorPrintln("Selecting language...")
+		utils.StdErrorPrintln("Selecting language... ")
 		parser := parser.SelectParser(language) // 言語に合わせたパーサーを選択
 		utils.StdErrorPrintln("Parsing file...")
 		libInfoList := parser.Parse(filePath) // パーサーでファイルをパース
@@ -113,7 +113,7 @@ to quickly create a Cobra application.`,
 		analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
 		presenter := presenter.SelectPresenter(outputFormat, analyzedLibInfos)
 
-		utils.StdErrorPrintln("Displaying result...")
+		utils.StdErrorPrintln("Displaying result...\n")
 		presenter.Display()
 	},
 }

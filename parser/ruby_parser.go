@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/konyu/StayOrGo/utils"
 )
 
 type RubyParser struct{}
@@ -51,14 +53,11 @@ func (p RubyParser) Parse(file string) []LibInfo {
 			if cleanedPart == "" {
 				continue
 			}
-			// fmt.Println(cleanedPart)
-
 			// NGキーのリスト
 			ngKeys := []string{"source", "git", "github"}
 
 			// cleanedPartがハッシュ形式を表すかチェックし、NGキーが含まれているか判定
 			for _, ngKey := range ngKeys {
-				fmt.Println(ngKey)
 				if strings.HasPrefix(cleanedPart, ":"+ngKey+" ") || strings.HasPrefix(cleanedPart, ngKey+":") {
 					newLib.Skip = true
 					newLib.SkipReason = "does not support libraries hosted outside of Github"
@@ -92,21 +91,20 @@ func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 		repoURL, err := p.getGitHubRepositoryURL(name)
 		if err != nil {
 			libInfo.Skip = true
-			libInfo.SkipReason = "does not support libraries hosted outside of Github"
-
-			fmt.Printf("%s: %s\n", name, err.Error())
+			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
+			utils.StdErrorPrintln("%s does not support libraries hosted outside of Github: %s", name, err)
 			continue
 		}
-
 		libInfo.RepositoryUrl = repoURL
-		fmt.Printf("GitHub repository URL for %s: %s\n", name, repoURL)
 	}
 	return libInfoList
 }
 
 func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {
 	baseURL := "https://rubygems.org/api/v1/gems/"
-	response, err := http.Get(baseURL + name + ".json")
+	repoUrl := baseURL + name + ".json"
+	utils.DebugPrintln("Fetching: " + repoUrl)
+	response, err := http.Get(repoUrl)
 	if err != nil {
 		return "", fmt.Errorf("can't get the gem repository, skipping")
 	}

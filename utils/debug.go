@@ -13,7 +13,6 @@ func DebugPrintln(message string) {
 	}
 }
 
-func StdErrorPrintln(message string) {
-	fmt.Fprintln(os.Stderr, message)
-
+func StdErrorPrintln(message string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, message+"\n", a...)
 }

@@ -152,12 +152,6 @@ func MakeAnalyzedLibInfoList(libInfoList []parser.LibInfo, gitHubRepoInfos []ana
 		analyzedLibInfos = append(analyzedLibInfos, analyzedLibInfo)
 	}
 
-	for _, info := range analyzedLibInfos {
-		if info.GitHubRepoInfo != nil {
-			fmt.Printf("Repo: %s, Stars: %d, Forks: %d, Last Commit: %s, Archived: %t, Score: %d \n",
-				info.GitHubRepoInfo.RepositoryName, info.GitHubRepoInfo.Stars, info.GitHubRepoInfo.Forks, info.GitHubRepoInfo.LastCommitDate, info.GitHubRepoInfo.Archived, info.GitHubRepoInfo.Score)
-		}
-	}
 	return analyzedLibInfos
 }
 
