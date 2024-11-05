@@ -8,6 +8,7 @@ import (
 	"github.com/konyu/StayOrGo/analyzer"
 	"github.com/konyu/StayOrGo/parser"
 	"github.com/konyu/StayOrGo/presenter"
+	"github.com/konyu/StayOrGo/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -16,6 +17,7 @@ var (
 	filePath           string
 	outputFormat       string
 	githubToken        string
+	verbose            bool
 	supportedLanguages = []string{"ruby", "go"}
 	languageConfigMap  = map[string]string{
 		"ruby": "Gemfile",
@@ -27,29 +29,6 @@ var (
 		"markdown": true,
 	}
 )
-
-// type AnalyzedLibInfo struct {
-// 	LibInfo        *parser.LibInfo
-// 	GitHubRepoInfo *analyzer.GitHubRepoInfo
-// }
-
-// func (ainfo AnalyzedLibInfo) Skip() bool {
-// 	if ainfo.LibInfo.Skip == true {
-// 		return true
-// 	} else if ainfo.GitHubRepoInfo.Skip {
-// 		return true
-// 	}
-// 	return false
-// }
-
-// func (ainfo AnalyzedLibInfo) SkipReason() string {
-// 	if ainfo.LibInfo.Skip == true {
-// 		return ainfo.LibInfo.SkipReason
-// 	} else if ainfo.GitHubRepoInfo.Skip {
-// 		return ainfo.GitHubRepoInfo.SkipReason
-// 	}
-// 	return "No skip reason"
-// }
 
 // 引数を全部設定するlintを回避
 //
@@ -65,15 +44,16 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(_ *cobra.Command, args []string) {
+
 		if len(args) == 0 {
-			fmt.Println("Please Enter specify a language (" +
-				strings.Join(supportedLanguages, " or ") + ")")
+			fmt.Fprintln(os.Stderr, "Please Enter specify a language ("+
+				strings.Join(supportedLanguages, " or ")+")")
 			os.Exit(1)
 		}
 
 		language := args[0] // Get the language argument
 		if !isSupportedLanguage(language) {
-			fmt.Printf("Error: Unsupported language: %s. Supported languages are: %s\n",
+			fmt.Fprintln(os.Stderr, "Error: Unsupported language: %s. Supported languages are: %s\n",
 				language, strings.Join(supportedLanguages, ", "))
 			os.Exit(1)
 		}
@@ -87,7 +67,7 @@ to quickly create a Cobra application.`,
 			for key := range supportedOutputFormats {
 				keys = append(keys, key)
 			}
-			fmt.Printf("Error: Unsupported output format: %s. Supported output formats are: %s\n",
+			fmt.Fprintln(os.Stderr, "Error: Unsupported output format: %s. Supported output formats are: %s\n",
 				outputFormat, strings.Join(keys, ", "))
 			os.Exit(1)
 		}
@@ -97,28 +77,27 @@ to quickly create a Cobra application.`,
 		if githubToken == "" {
 			githubToken = os.Getenv("GITHUB_TOKEN")
 			if githubToken == "" {
-				fmt.Println(`Please provide a GitHub token using the --github-token flag
+				fmt.Fprintln(os.Stderr, `Please provide a GitHub token using the --github-token flag
 			 or set the GITHUB_TOKEN environment variable`)
 				os.Exit(1)
 			}
 		}
 
-		fmt.Println("Language", language)
-		fmt.Println("Reading file:", filePath)
-		fmt.Println("Output format:", outputFormat)
+		utils.DebugPrintln("Selected Language: " + language)
+		utils.DebugPrintln("Reading file: " + filePath)
+		utils.DebugPrintln("Output format: " + outputFormat)
 
 		// TODO: パラメータをファイルから読み込めるようにする
 		weights := analyzer.NewParameterWeights()
 		analyzer := analyzer.NewGitHubRepoAnalyzer(githubToken, weights)
 
+		utils.StdErrorPrintln("Selecting language...")
 		parser := parser.SelectParser(language) // 言語に合わせたパーサーを選択
-		libInfoList := parser.Parse(filePath)   // パーサーでファイルをパース
+		utils.StdErrorPrintln("Parsing file...")
+		libInfoList := parser.Parse(filePath) // パーサーでファイルをパース
 
+		utils.StdErrorPrintln("Getting repository URLs...")
 		parser.GetRepositoryURL(libInfoList)
-		fmt.Println("GetRepositoryURL result:")
-		for _, info := range libInfoList {
-			fmt.Println(info)
-		}
 
 		var repoUrls []string
 		for _, info := range libInfoList {
@@ -127,10 +106,15 @@ to quickly create a Cobra application.`,
 			}
 		}
 
+		utils.StdErrorPrintln("Analyzing libraries with Github...")
 		gitHubRepoInfos := analyzer.FetchGithubInfo(repoUrls)
+
+		utils.StdErrorPrintln("Making dataset...")
 		analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
-		pp := presenter.SelectPresenter(outputFormat, analyzedLibInfos)
-		pp.Display()
+		presenter := presenter.SelectPresenter(outputFormat, analyzedLibInfos)
+
+		utils.StdErrorPrintln("Displaying result...")
+		presenter.Display()
 	},
 }
 
@@ -156,4 +140,5 @@ func init() {
 	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "markdown", "Specify the output format (csv, tsv, markdown)")
 	rootCmd.Flags().StringVarP(&githubToken, "github-token", "g", "", "GitHub token for authentication")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().BoolVarP(&utils.Verbose, "verbose", "v", false, "Enable verbose output")
 }
