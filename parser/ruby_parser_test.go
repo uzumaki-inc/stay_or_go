@@ -1,11 +1,10 @@
-package parser_test
+package parser
 
 import (
 	"os"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/konyu/StayOrGo/parser"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +27,7 @@ gem 'puma'`
 	}
 
 	// Parse the file using RubyParser
-	p := parser.RubyParser{}
+	p := RubyParser{}
 	libInfoList := p.Parse(tempFile.Name())
 
 	// Assertions
@@ -58,14 +57,14 @@ func TestRubyParser_GetRepositoryURL(t *testing.T) {
 		httpmock.NewStringResponder(200, `{"source_code_uri": ""}`))
 
 	// Create initial LibInfo list
-	libInfoList := []parser.LibInfo{
+	libInfoList := []LibInfo{
 		{Name: "rails"},
 		{Name: "nokogiri"},
 		{Name: "puma"},
 	}
 
 	// Run GetRepositoryURL method
-	p := parser.RubyParser{}
+	p := RubyParser{}
 	updatedLibInfoList := p.GetRepositoryURL(libInfoList)
 
 	// Assertions

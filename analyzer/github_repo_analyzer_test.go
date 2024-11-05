@@ -1,10 +1,9 @@
-package analyzer_test
+package analyzer
 
 import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/konyu/StayOrGo/analyzer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +37,7 @@ func TestGitHubRepoAnalyzer_FetchGithubInfo(t *testing.T) {
 		}`))
 
 	// Set up analyzer
-	weights := analyzer.ParameterWeights{
+	weights := ParameterWeights{
 		Score:            1.0,
 		Forks:            0.5,
 		OpenPullRequests: 0.3,
@@ -46,7 +45,7 @@ func TestGitHubRepoAnalyzer_FetchGithubInfo(t *testing.T) {
 		LastCommitDate:   -0.1,
 		Archived:         -1.0,
 	}
-	analyzer := analyzer.NewGitHubRepoAnalyzer("mock-token", weights)
+	analyzer := NewGitHubRepoAnalyzer("mock-token", weights)
 
 	// Run FetchGithubInfo method
 	repoUrls := []string{"https://github.com/rails/rails"}
@@ -77,8 +76,8 @@ func TestGitHubRepoAnalyzer_getGitHubInfo_ErrorHandling(t *testing.T) {
 	httpmock.RegisterNoResponder(httpmock.NewStringResponder(404, `{"message": "Not Found"}`))
 
 	// Set up analyzer
-	weights := analyzer.ParameterWeights{}
-	analyzer := analyzer.NewGitHubRepoAnalyzer("mock-token", weights)
+	weights := ParameterWeights{}
+	analyzer := NewGitHubRepoAnalyzer("mock-token", weights)
 
 	// Run FetchGithubInfo method
 	repoUrls := []string{"https://github.com/unknown/repo"}
