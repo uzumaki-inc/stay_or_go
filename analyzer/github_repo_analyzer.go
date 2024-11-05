@@ -46,16 +46,16 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRe
 
 		libraryInfo, err := g.getGitHubInfo(repoUrl)
 		if err != nil {
-			libraryInfo.Skip = true
-			libraryInfo.SkipReason = "Failed fetching" + repoUrl + "from GitHub"
+			// 新しくGitHubRepoInfoを作成してSkip情報を設定する
+			libraryInfo = &GitHubRepoInfo{
+				Skip:       true,
+				SkipReason: "Failed fetching " + repoUrl + " from GitHub",
+			}
 			utils.StdErrorPrintln("Failed fetching %s, error details: %v", repoUrl, err)
-			continue
 		}
 
-		if libraryInfo != nil {
-			libraryInfo.GithubRepoUrl = repoUrl
-			libraryInfoList = append(libraryInfoList, *libraryInfo)
-		}
+		libraryInfo.GithubRepoUrl = repoUrl
+		libraryInfoList = append(libraryInfoList, *libraryInfo)
 	}
 	return libraryInfoList
 }
