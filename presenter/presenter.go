@@ -29,13 +29,13 @@ func (ainfo AnalyzedLibInfo) RepositoryUrl() *string {
 	}
 }
 
-func (ainfo AnalyzedLibInfo) RepositoryName() *string {
-	if ainfo.GitHubRepoInfo != nil && ainfo.GitHubRepoInfo.RepositoryName != "" {
-		return &ainfo.GitHubRepoInfo.RepositoryName
-	} else {
-		return nil
-	}
-}
+// func (ainfo AnalyzedLibInfo) RepositoryName() *string {
+// 	if ainfo.GitHubRepoInfo != nil && ainfo.GitHubRepoInfo.RepositoryName != "" {
+// 		return &ainfo.GitHubRepoInfo.RepositoryName
+// 	} else {
+// 		return nil
+// 	}
+// }
 
 func (ainfo AnalyzedLibInfo) Watchers() *int {
 	if ainfo.GitHubRepoInfo != nil {
@@ -80,14 +80,6 @@ func (ainfo AnalyzedLibInfo) OpenIssues() *int {
 func (ainfo AnalyzedLibInfo) LastCommitDate() *string {
 	if ainfo.GitHubRepoInfo != nil {
 		return &ainfo.GitHubRepoInfo.LastCommitDate
-	} else {
-		return nil
-	}
-}
-
-func (ainfo AnalyzedLibInfo) LibraryName() *string {
-	if ainfo.GitHubRepoInfo != nil {
-		return &ainfo.GitHubRepoInfo.LibraryName
 	} else {
 		return nil
 	}
@@ -210,15 +202,12 @@ func makeBody(analyzedLibInfos []AnalyzedLibInfo, separator string) []string {
 var headerString = []string{
 	"Name",
 	"RepositoryUrl",
-	// "RepositoryName",
 	"Watchers",
 	"Stars",
 	"Forks",
 	"OpenPullRequests",
 	"OpenIssues",
 	"LastCommitDate",
-	"LibraryName",
-	"GithubRepoUrl",
 	"Archived",
 	"Score",
 	"Skip",

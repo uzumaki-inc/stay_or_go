@@ -18,7 +18,6 @@ type GitHubRepoInfo struct {
 	OpenPullRequests int
 	OpenIssues       int
 	LastCommitDate   string
-	LibraryName      string
 	GithubRepoUrl    string
 	Archived         bool
 	Score            int
