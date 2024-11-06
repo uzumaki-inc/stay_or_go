@@ -45,7 +45,6 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRe
 
 		libraryInfo, err := g.getGitHubInfo(repoUrl)
 		if err != nil {
-			// 新しくGitHubRepoInfoを作成してSkip情報を設定する
 			libraryInfo = &GitHubRepoInfo{
 				Skip:       true,
 				SkipReason: "Failed fetching " + repoUrl + " from GitHub",
@@ -113,6 +112,8 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, err
 		OpenIssues:       int(repoData["open_issues_count"].(float64)),
 		LastCommitDate:   lastCommitDate,
 		Archived:         repoData["archived"].(bool),
+		Skip:             false,
+		SkipReason:       "",
 	}
 	calcScore(repoInfo, &g.weights)
 

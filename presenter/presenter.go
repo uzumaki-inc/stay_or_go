@@ -29,14 +29,6 @@ func (ainfo AnalyzedLibInfo) RepositoryUrl() *string {
 	}
 }
 
-// func (ainfo AnalyzedLibInfo) RepositoryName() *string {
-// 	if ainfo.GitHubRepoInfo != nil && ainfo.GitHubRepoInfo.RepositoryName != "" {
-// 		return &ainfo.GitHubRepoInfo.RepositoryName
-// 	} else {
-// 		return nil
-// 	}
-// }
-
 func (ainfo AnalyzedLibInfo) Watchers() *int {
 	if ainfo.GitHubRepoInfo != nil {
 		return &ainfo.GitHubRepoInfo.Watchers
@@ -133,11 +125,11 @@ func MakeAnalyzedLibInfoList(libInfoList []parser.LibInfo, gitHubRepoInfos []ana
 	var analyzedLibInfos []AnalyzedLibInfo
 	var j = 0
 
-	for i, info := range libInfoList {
+	for _, info := range libInfoList {
 		analyzedLibInfo := AnalyzedLibInfo{
 			LibInfo: &info,
 		}
-		if i <= len(gitHubRepoInfos) && info.RepositoryUrl == gitHubRepoInfos[j].GithubRepoUrl {
+		if j < len(gitHubRepoInfos) && info.RepositoryUrl == gitHubRepoInfos[j].GithubRepoUrl {
 			analyzedLibInfo.GitHubRepoInfo = &gitHubRepoInfos[j]
 			j++
 		}
@@ -155,10 +147,11 @@ type Presenter interface {
 
 func Display(p Presenter) {
 	header := p.makeHeader()
+	body := p.makeBody()
+
 	for _, line := range header {
 		fmt.Println(line)
 	}
-	body := p.makeBody()
 	for _, line := range body {
 		fmt.Println(line)
 	}

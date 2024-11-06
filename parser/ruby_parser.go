@@ -124,7 +124,6 @@ func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to unmarshal JSON response")
 	}
-	fmt.Println(repo)
 
 	repoURL := repo.SourceCodeURI
 	if repoURL == "" {
