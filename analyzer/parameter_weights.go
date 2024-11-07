@@ -1,24 +1,22 @@
 package analyzer
 
+import (
+	"os"
+
+	"github.com/konyu/StayOrGo/utils"
+	"github.com/spf13/viper"
+)
+
 type ParameterWeights struct {
-	Watchers         float64
-	Stars            float64
-	Forks            float64
-	OpenPullRequests float64
-	OpenIssues       float64
-	LastCommitDate   float64
-	Archived         float64
-	Score            float64
+	Watchers         float64 `mapstructure:"watchers"`
+	Stars            float64 `mapstructure:"stars"`
+	Forks            float64 `mapstructure:"forks"`
+	OpenPullRequests float64 `mapstructure:"open_pull_requests"`
+	OpenIssues       float64 `mapstructure:"open_issues"`
+	LastCommitDate   float64 `mapstructure:"last_commit_date"`
+	Archived         float64 `mapstructure:"archived"`
 }
 
-// stars * 0.1
-// forks * 0.1
-// The number of open PRs and issues has less impact compared to stars and watchers
-// open_pull_requests * 0.01
-// open_issues * 0.01
-// Adjusts the score to decrease for projects that were once popular but are no longer maintained
-// Days from the execution date to the last commit date * 0.2
-// If archived is true, it is not maintained, so it is heavily penalized
 func NewParameterWeights() ParameterWeights {
 	return ParameterWeights{
 		Watchers:         0.1,
@@ -29,4 +27,20 @@ func NewParameterWeights() ParameterWeights {
 		LastCommitDate:   -0.05,
 		Archived:         -1000000,
 	}
+}
+
+func NewParameterWeightsFromConfiFile(configFilePath string) ParameterWeights {
+	viper.SetConfigFile(configFilePath)
+	if err := viper.ReadInConfig(); err != nil {
+		utils.StdErrorPrintln("Failed to read the configuration file: %v\n", err)
+		os.Exit(1)
+	}
+
+	var weights ParameterWeights
+	if err := viper.Unmarshal(&weights); err != nil {
+		utils.StdErrorPrintln("Failed to unmarshal the configuration: %v\n", err)
+		os.Exit(1)
+	}
+
+	return weights
 }

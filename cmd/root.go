@@ -14,10 +14,12 @@ import (
 
 // var greeting string
 var (
-	filePath           string
-	outputFormat       string
-	githubToken        string
-	verbose            bool
+	filePath       string
+	outputFormat   string
+	githubToken    string
+	verbose        bool
+	configFilePath string
+
 	supportedLanguages = []string{"ruby", "go"}
 	languageConfigMap  = map[string]string{
 		"ruby": "Gemfile",
@@ -87,14 +89,19 @@ to quickly create a Cobra application.`,
 		utils.DebugPrintln("Reading file: " + filePath)
 		utils.DebugPrintln("Output format: " + outputFormat)
 
-		// TODO: パラメータをファイルから読み込めるようにする
-		weights := analyzer.NewParameterWeights()
+		var weights analyzer.ParameterWeights
+		if configFilePath != "" {
+			utils.DebugPrintln("Config file: " + configFilePath)
+			weights = analyzer.NewParameterWeightsFromConfiFile(configFilePath)
+		} else {
+			weights = analyzer.NewParameterWeights()
+		}
 		analyzer := analyzer.NewGitHubRepoAnalyzer(githubToken, weights)
 
 		utils.StdErrorPrintln("Selecting language... ")
-		parser := parser.SelectParser(language) // 言語に合わせたパーサーを選択
+		parser := parser.SelectParser(language)
 		utils.StdErrorPrintln("Parsing file...")
-		libInfoList := parser.Parse(filePath) // パーサーでファイルをパース
+		libInfoList := parser.Parse(filePath)
 
 		utils.StdErrorPrintln("Getting repository URLs...")
 		parser.GetRepositoryURL(libInfoList)
@@ -141,4 +148,5 @@ func init() {
 	rootCmd.Flags().StringVarP(&githubToken, "github-token", "g", "", "GitHub token for authentication")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.Flags().BoolVarP(&utils.Verbose, "verbose", "v", false, "Enable verbose output")
+	rootCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Modify evaluate parameters")
 }
