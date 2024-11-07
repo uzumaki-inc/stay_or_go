@@ -14,52 +14,104 @@ import (
 
 type GoParser struct{}
 
-func (p GoParser) Parse(file string) []LibInfo {
-	var libInfoList []LibInfo
-
-	f, err := os.Open(file)
+func (p GoParser) Parse(filePath string) []LibInfo {
+	file, err := os.Open(filePath)
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer file.Close()
 
-	scanner := bufio.NewScanner(f)
+	replaceModules := p.collectReplaceModules(file)
+	libInfoList := p.processRequireBlock(file, replaceModules)
+
+	return libInfoList
+}
+
+func (p GoParser) collectReplaceModules(file *os.File) []string {
+	var replaceModules []string
+	var inReplaceBlock bool
+
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := strings.TrimSpace(scanner.Text())
 
-		if !strings.HasPrefix(line, "\t") || strings.HasSuffix(line, "// indirect") {
+		if line == "replace (" {
+			inReplaceBlock = true
 			continue
 		}
-
-		parts := strings.Fields(line)
-
-		if len(parts) < 2 {
+		if line == ")" && inReplaceBlock {
+			inReplaceBlock = false
 			continue
 		}
+		if inReplaceBlock {
+			parts := strings.Fields(line)
+			if len(parts) > 0 {
+				replaceModules = append(replaceModules, parts[0])
+			}
+		}
+	}
 
-		libParts := strings.Split(parts[0], "/")
-		libName := libParts[len(libParts)-1]
-		newLib := LibInfo{Name: libName, Others: []string{parts[0], parts[1]}}
+	file.Seek(0, 0) // Reset file pointer for next pass
+	return replaceModules
+}
 
-		libInfoList = append(libInfoList, newLib)
+func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []LibInfo {
+	var libInfoList []LibInfo
+	var inRequireBlock bool
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		if line == "require (" {
+			inRequireBlock = true
+			continue
+		}
+		if line == ")" && inRequireBlock {
+			inRequireBlock = false
+			continue
+		}
+		if inRequireBlock && !strings.Contains(line, "// indirect") {
+			parts := strings.Fields(line)
+			if len(parts) > 0 {
+				module := parts[0]
+				libParts := strings.Split(parts[0], "/")
+				libName := libParts[len(libParts)-1]
+				var newLib LibInfo
+				if contains(replaceModules, module) {
+					newLib = LibInfo{Name: libName, Skip: true, SkipReason: "replaced module"}
+				} else {
+					newLib = LibInfo{Name: libName, Others: []string{parts[0], parts[1]}}
+				}
+				libInfoList = append(libInfoList, newLib)
+			}
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
-
 	return libInfoList
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
 
 func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 	for i, _ := range libInfoList {
 		libInfo := &libInfoList[i]
-		name := libInfo.Others[0]
-		version := libInfo.Others[1]
 
 		if libInfo.Skip {
 			continue
 		}
+		name := libInfo.Others[0]
+		version := libInfo.Others[1]
 
 		repoURL, err := p.getGitHubRepositoryURL(name, version)
 		if err != nil {
