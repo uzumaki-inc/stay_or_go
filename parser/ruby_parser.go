@@ -24,7 +24,8 @@ func (p RubyParser) Parse(file string) []LibInfo {
 
 	f, err := os.Open(file)
 	if err != nil {
-		panic(err)
+		utils.StdErrorPrintln("Failed to read file %v", err)
+		os.Exit(1)
 	}
 	defer f.Close()
 
@@ -72,7 +73,8 @@ func (p RubyParser) Parse(file string) []LibInfo {
 	}
 
 	if err := scanner.Err(); err != nil {
-		panic(err)
+		utils.StdErrorPrintln("Failed to scan file %v", err)
+		os.Exit(1)
 	}
 
 	return libInfoList

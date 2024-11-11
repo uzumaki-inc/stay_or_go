@@ -2,10 +2,12 @@ package presenter
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 
 	"github.com/konyu/StayOrGo/analyzer"
 	"github.com/konyu/StayOrGo/parser"
+	"github.com/konyu/StayOrGo/utils"
 )
 
 type AnalyzedLibInfo struct {
@@ -181,7 +183,8 @@ func makeBody(analyzedLibInfos []AnalyzedLibInfo, separator string) []string {
 					row += separator
 				}
 			} else {
-				panic(fmt.Sprintf("method %s not found in %v", header, info))
+				utils.StdErrorPrintln("method %s not found in %v", header, info)
+				os.Exit(1)
 			}
 		}
 		if separator == "|" {

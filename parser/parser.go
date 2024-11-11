@@ -1,5 +1,11 @@
 package parser
 
+import (
+	"os"
+
+	"github.com/konyu/StayOrGo/utils"
+)
+
 type LibInfo struct {
 	Skip          bool     // スキップするかどうかのフラグ
 	SkipReason    string   // スキップ理由
@@ -23,7 +29,8 @@ func SelectParser(language string) Parser {
 	case "go":
 		parser = GoParser{}
 	default:
-		panic("Error: Unsupported language: " + language)
+		utils.StdErrorPrintln("Error: Unsupported language: %s", language)
+		os.Exit(1)
 	}
 	selectedParser = parser
 	return parser
@@ -31,7 +38,8 @@ func SelectParser(language string) Parser {
 
 func Parse(file string) []LibInfo {
 	if selectedParser == nil {
-		panic("Error: Parser not selected")
+		utils.StdErrorPrintln("Error: Parser not selected")
+		os.Exit(1)
 	}
 	return selectedParser.Parse(file)
 }

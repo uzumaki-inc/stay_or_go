@@ -17,7 +17,8 @@ type GoParser struct{}
 func (p GoParser) Parse(filePath string) []LibInfo {
 	file, err := os.Open(filePath)
 	if err != nil {
-		panic(err)
+		utils.StdErrorPrintln("Failed to read file %v", err)
+		os.Exit(1)
 	}
 	defer file.Close()
 
@@ -89,7 +90,8 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []
 	}
 
 	if err := scanner.Err(); err != nil {
-		panic(err)
+		utils.StdErrorPrintln("Failed to scan file %v", err)
+		os.Exit(1)
 	}
 	return libInfoList
 }
