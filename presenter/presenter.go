@@ -81,7 +81,7 @@ func (ainfo AnalyzedLibInfo) LastCommitDate() *string {
 
 func (ainfo AnalyzedLibInfo) GithubRepoUrl() *string {
 	if ainfo.GitHubRepoInfo != nil {
-		return &ainfo.GitHubRepoInfo.GithubRepoUrl
+		return &ainfo.GitHubRepoInfo.GithubRepoURL
 	}
 
 	return nil
@@ -133,7 +133,7 @@ func MakeAnalyzedLibInfoList(libInfoList []parser.LibInfo, gitHubRepoInfos []ana
 		analyzedLibInfo := AnalyzedLibInfo{
 			LibInfo: &info,
 		}
-		if j < len(gitHubRepoInfos) && info.RepositoryUrl == gitHubRepoInfos[j].GithubRepoUrl {
+		if j < len(gitHubRepoInfos) && info.RepositoryUrl == gitHubRepoInfos[j].GithubRepoURL {
 			analyzedLibInfo.GitHubRepoInfo = &gitHubRepoInfos[j]
 			j++
 		}

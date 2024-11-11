@@ -12,3 +12,10 @@ linters:
     - depguard # cmdからimportできなくなるため
     - gochecknoglobals # globalな変数の利用を許可する(フラグで利用するため フラグで利用する変数はマジックコメントで退避してもいいかも
     - exportloopref # deprecated
+
+linters-settings:
+  tagliatelle:
+    case:
+      use-field-name: true
+      rules:
+        json: snake

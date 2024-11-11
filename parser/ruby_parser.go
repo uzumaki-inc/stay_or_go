@@ -21,6 +21,7 @@ type RubyRepository struct {
 
 func (p RubyParser) Parse(file string) []LibInfo {
 	var libInfoList []LibInfo
+	const minPartsLength = 2
 
 	f, err := os.Open(file)
 	if err != nil {
@@ -38,7 +39,7 @@ func (p RubyParser) Parse(file string) []LibInfo {
 
 		parts := strings.Fields(line)
 
-		if len(parts) < 2 {
+		if len(parts) < minPartsLength {
 			continue
 		}
 
@@ -82,7 +83,7 @@ func (p RubyParser) Parse(file string) []LibInfo {
 }
 
 func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
-	for i, _ := range libInfoList {
+	for i := range libInfoList {
 		// ポインタを取得
 		libInfo := &libInfoList[i]
 		name := libInfo.Name
@@ -144,5 +145,5 @@ func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {
 		return "", fmt.Errorf("not a GitHub repository, skipping")
 	}
 
-	return repoURL, nil
+	return repoURLfromRubyGems, nil
 }

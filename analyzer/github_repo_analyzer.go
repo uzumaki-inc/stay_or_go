@@ -18,7 +18,7 @@ type GitHubRepoInfo struct {
 	OpenPullRequests int
 	OpenIssues       int
 	LastCommitDate   string
-	GithubRepoUrl    string
+	GithubRepoURL    string
 	Archived         bool
 	Score            int
 	Skip             bool   // スキップするかどうかのフラグ
@@ -40,6 +40,7 @@ func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAn
 // FetchInfo fetches information for each repository
 func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo {
 	var libraryInfoList []GitHubRepoInfo
+
 	for _, repoURL := range repositoryUrls {
 		utils.DebugPrintln("Fetching: " + repoURL)
 
@@ -53,7 +54,7 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRe
 			utils.StdErrorPrintln("Failed fetching %s, error details: %v", repoURL, err)
 		}
 
-		libraryInfo.GithubRepoUrl = repoURL
+		libraryInfo.GithubRepoURL = repoURL
 		libraryInfoList = append(libraryInfoList, *libraryInfo)
 	}
 
@@ -82,7 +83,7 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoURL string) (*GitHubRepoInfo, err
 
 	client := &http.Client{}
 	headers := map[string]string{
-		"Authorization": fmt.Sprintf("token %s", g.githubToken),
+		"Authorization": "token " + g.githubToken,
 	}
 
 	repoData, err := fetchJSON(client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers)
@@ -97,7 +98,10 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoURL string) (*GitHubRepoInfo, err
 
 	openPullRequests := len(pullRequestsData)
 
-	defaultBranch := repoData["default_branch"].(string)
+	defaultBranch, ok := repoData["default_branch"].(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to assert type for default_branch")
+	}
 
 	commitData, err := fetchJSON(client, fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, defaultBranch), headers)
 	if err != nil {
@@ -133,7 +137,7 @@ func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
 		utils.StdErrorPrintln("Date Format Error: %v", err)
 	}
 
-	var score = float64(repoInfo.Stars) * weights.Stars
+	score := float64(repoInfo.Stars) * weights.Stars
 	score += float64(repoInfo.Forks) * weights.Forks
 	score += float64(repoInfo.OpenPullRequests) * weights.OpenPullRequests
 	score += float64(repoInfo.OpenIssues) * weights.OpenIssues
@@ -151,7 +155,7 @@ func daysSince(dateStr string) (int, error) {
 	parsedTime, err := time.Parse(layout, dateStr)
 
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to parse date '%s': %w", dateStr, err)
 	}
 
 	currentTime := time.Now()
@@ -164,7 +168,7 @@ func daysSince(dateStr string) (int, error) {
 func fetchJSONData(client *http.Client, url string, headers map[string]string, result interface{}) error {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create new HTTP request for URL %s: %w", url, err)
 	}
 
 	for key, value := range headers {
@@ -173,12 +177,12 @@ func fetchJSONData(client *http.Client, url string, headers map[string]string, r
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute HTTP request for URL %s: %w", url, err)
 	}
 	defer resp.Body.Close()
 
 	if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
-		return err
+		return fmt.Errorf("failed to decode JSON response for URL %s: %w", url, err)
 	}
 
 	return nil

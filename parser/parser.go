@@ -1,9 +1,21 @@
 package parser
 
 import (
+	"errors"
 	"os"
 
 	"github.com/konyu/StayOrGo/utils"
+)
+
+var (
+	ErrMethodNotFound           = errors.New("method not found in struct")
+	ErrFailedToReadFile         = errors.New("failed to read file")
+	ErrFailedToResetFilePointer = errors.New("failed to reset file pointer")
+	ErrFailedToScanFile         = errors.New("failed to scan file")
+	ErrFailedToGetRepository    = errors.New("can't get the gem repository, skipping")
+	ErrNotAGitHubRepository     = errors.New("not a GitHub repository, skipping")
+	ErrFailedToReadResponseBody = errors.New("failed to read response body")
+	ErrFailedToUnmarshalJSON    = errors.New("failed to unmarshal JSON response")
 )
 
 type LibInfo struct {

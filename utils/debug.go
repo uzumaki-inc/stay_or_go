@@ -18,15 +18,15 @@ func StdErrorPrintln(message string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, message+"\n", a...)
 }
 
-func PrintStructFields(s interface{}) {
-	if s == nil {
+func PrintStructFields(structObj interface{}) {
+	if structObj == nil {
 		fmt.Println("nil value provided")
 
 		return
 	}
 
-	val := reflect.ValueOf(s)
-	typ := reflect.TypeOf(s)
+	val := reflect.ValueOf(structObj)
+	typ := reflect.TypeOf(structObj)
 
 	if val.Kind() == reflect.Ptr {
 		if val.IsNil() {
@@ -45,7 +45,7 @@ func PrintStructFields(s interface{}) {
 		return
 	}
 
-	for i := 0; i < val.NumField(); i++ {
+	for i := range make([]struct{}, val.NumField()) {
 		fieldName := typ.Field(i).Name
 		fieldValue := val.Field(i)
 

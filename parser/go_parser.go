@@ -3,7 +3,6 @@ package parser
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -17,7 +16,7 @@ type GoParser struct{}
 func (p GoParser) Parse(filePath string) []LibInfo {
 	file, err := os.Open(filePath)
 	if err != nil {
-		utils.StdErrorPrintln("Failed to read file %v", err)
+		utils.StdErrorPrintln("%v: %v", ErrFailedToReadFile, err)
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -58,7 +57,7 @@ func (p GoParser) collectReplaceModules(file *os.File) []string {
 	}
 
 	if _, err := file.Seek(0, 0); err != nil { // Reset file pointer for next pass
-		utils.StdErrorPrintln("Failed to reset file pointer: %v", err)
+		utils.StdErrorPrintln("%v: %v", ErrFailedToResetFilePointer, err)
 		os.Exit(1)
 	}
 
@@ -107,7 +106,7 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []
 	}
 
 	if err := scanner.Err(); err != nil {
-		utils.StdErrorPrintln("Failed to scan file %v", err)
+		utils.StdErrorPrintln("%v: %v", ErrFailedToScanFile, err)
 		os.Exit(1)
 	}
 
@@ -125,7 +124,7 @@ func contains(slice []string, item string) bool {
 }
 
 func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
-	for i, _ := range libInfoList {
+	for i := range libInfoList {
 		libInfo := &libInfoList[i]
 
 		if libInfo.Skip {
@@ -171,31 +170,32 @@ func (p GoParser) getGitHubRepositoryURL(name, version string) (string, error) {
 	response, err := http.Get(repoURL)
 
 	if err != nil {
-		return "", fmt.Errorf("can't get the gem repository, skipping")
+		return "", ErrFailedToGetRepository
 	}
 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("not a GitHub repository, skipping")
+		return "", ErrNotAGitHubRepository
 	}
 
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body")
+		return "", ErrFailedToReadResponseBody
 	}
 
 	var repo GoRepository
+
 	err = json.Unmarshal(bodyBytes, &repo)
 
 	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal JSON response")
+		return "", ErrFailedToUnmarshalJSON
 	}
 
 	repoURLfromGithub := repo.Origin.URL
 
 	if repoURLfromGithub == "" || !strings.Contains(repoURLfromGithub, "github.com") {
-		return "", fmt.Errorf("not a GitHub repository, skipping")
+		return "", ErrNotAGitHubRepository
 	}
 
 	return repoURLfromGithub, nil
