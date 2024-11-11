@@ -38,7 +38,6 @@ func TestFetchGithubInfo(t *testing.T) {
 
 	// テスト用のGitHubRepoAnalyzerを作成
 	analyzer := NewGitHubRepoAnalyzer("dummy-token", ParameterWeights{
-		Score:            1.0,
 		Forks:            1.0,
 		OpenPullRequests: 1.0,
 		OpenIssues:       1.0,
