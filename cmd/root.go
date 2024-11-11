@@ -17,7 +17,6 @@ var (
 	filePath       string
 	outputFormat   string
 	githubToken    string
-	verbose        bool
 	configFilePath string
 
 	supportedLanguages = []string{"ruby", "go"}
@@ -52,7 +51,7 @@ Output the results in Markdown, CSV, or TSV formats.`,
 
 		language := args[0] // Get the language argument
 		if !isSupportedLanguage(language) {
-			fmt.Fprintln(os.Stderr, "Error: Unsupported language: %s. Supported languages are: %s\n",
+			utils.StdErrorPrintln("Error: Unsupported language: %s. Supported languages are: %s\n",
 				language, strings.Join(supportedLanguages, ", "))
 			os.Exit(1)
 		}
@@ -66,7 +65,8 @@ Output the results in Markdown, CSV, or TSV formats.`,
 			for key := range supportedOutputFormats {
 				keys = append(keys, key)
 			}
-			fmt.Fprintln(os.Stderr, "Error: Unsupported output format: %s. Supported output formats are: %s\n",
+
+			utils.StdErrorPrintln("Error: Unsupported output format: %s. Supported output formats are: %s\n",
 				outputFormat, strings.Join(keys, ", "))
 			os.Exit(1)
 		}
@@ -103,15 +103,15 @@ Output the results in Markdown, CSV, or TSV formats.`,
 		utils.StdErrorPrintln("Getting repository URLs...")
 		parser.GetRepositoryURL(libInfoList)
 
-		var repoUrls []string
+		var repoURLs []string
 		for _, info := range libInfoList {
 			if !info.Skip {
-				repoUrls = append(repoUrls, info.RepositoryUrl)
+				repoURLs = append(repoURLs, info.RepositoryUrl)
 			}
 		}
 
 		utils.StdErrorPrintln("Analyzing libraries with Github...")
-		gitHubRepoInfos := analyzer.FetchGithubInfo(repoUrls)
+		gitHubRepoInfos := analyzer.FetchGithubInfo(repoURLs)
 
 		utils.StdErrorPrintln("Making dataset...")
 		analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)

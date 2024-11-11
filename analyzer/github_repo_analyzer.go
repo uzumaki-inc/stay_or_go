@@ -40,35 +40,38 @@ func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAn
 // FetchInfo fetches information for each repository
 func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo {
 	var libraryInfoList []GitHubRepoInfo
-	for _, repoUrl := range repositoryUrls {
-		utils.DebugPrintln("Fetching: " + repoUrl)
+	for _, repoURL := range repositoryUrls {
+		utils.DebugPrintln("Fetching: " + repoURL)
 
-		libraryInfo, err := g.getGitHubInfo(repoUrl)
+		libraryInfo, err := g.getGitHubInfo(repoURL)
 		if err != nil {
 			libraryInfo = &GitHubRepoInfo{
 				Skip:       true,
-				SkipReason: "Failed fetching " + repoUrl + " from GitHub",
+				SkipReason: "Failed fetching " + repoURL + " from GitHub",
 			}
-			utils.StdErrorPrintln("Failed fetching %s, error details: %v", repoUrl, err)
+
+			utils.StdErrorPrintln("Failed fetching %s, error details: %v", repoURL, err)
 		}
 
-		libraryInfo.GithubRepoUrl = repoUrl
+		libraryInfo.GithubRepoUrl = repoURL
 		libraryInfoList = append(libraryInfoList, *libraryInfo)
 	}
+
 	return libraryInfoList
 }
 
 // getGitHubInfo fetches repository info from GitHub API
-func (g *GitHubRepoAnalyzer) getGitHubInfo(repoUrl string) (*GitHubRepoInfo, error) {
+func (g *GitHubRepoAnalyzer) getGitHubInfo(repoURL string) (*GitHubRepoInfo, error) {
 	if g.githubToken == "" {
 		return nil, fmt.Errorf("GitHub token not set")
 	}
 
-	repoUrl = strings.TrimSuffix(repoUrl, "/")
-	parts := strings.Split(repoUrl, "/")
+	repoURL = strings.TrimSuffix(repoURL, "/")
+	parts := strings.Split(repoURL, "/")
 
 	var owner, repo string
-	if strings.Contains(repoUrl, "/tree/") {
+
+	if strings.Contains(repoURL, "/tree/") {
 		baseIndex := indexOf(parts, "github.com") + 1
 		owner, repo = parts[baseIndex], parts[baseIndex+1]
 	} else {
@@ -124,7 +127,9 @@ func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
 	days, err := daysSince(repoInfo.LastCommitDate)
 	if err != nil {
 		repoInfo.Skip = true
+
 		repoInfo.SkipReason = "Date Format Error: " + repoInfo.LastCommitDate
+
 		utils.StdErrorPrintln("Date Format Error: %v", err)
 	}
 
@@ -144,9 +149,11 @@ func daysSince(dateStr string) (int, error) {
 	// 入力された日付文字列をパース（UTCフォーマット）
 	layout := "2006-01-02T15:04:05Z"
 	parsedTime, err := time.Parse(layout, dateStr)
+
 	if err != nil {
 		return 0, err
 	}
+
 	currentTime := time.Now()
 	duration := currentTime.Sub(parsedTime)
 	days := int(duration.Hours() / 24)
@@ -173,6 +180,7 @@ func fetchJSONData(client *http.Client, url string, headers map[string]string, r
 	if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -180,6 +188,7 @@ func fetchJSONData(client *http.Client, url string, headers map[string]string, r
 func fetchJSON(client *http.Client, url string, headers map[string]string) (map[string]interface{}, error) {
 	var result map[string]interface{}
 	err := fetchJSONData(client, url, headers, &result)
+
 	return result, err
 }
 
@@ -187,6 +196,7 @@ func fetchJSON(client *http.Client, url string, headers map[string]string) (map[
 func fetchJSONArray(client *http.Client, url string, headers map[string]string) ([]interface{}, error) {
 	var result []interface{}
 	err := fetchJSONData(client, url, headers, &result)
+
 	return result, err
 }
 
@@ -197,5 +207,6 @@ func indexOf(slice []string, value string) int {
 			return i
 		}
 	}
+
 	return -1
 }

@@ -46,8 +46,8 @@ func TestFetchGithubInfo(t *testing.T) {
 	})
 
 	// テスト実行
-	repoUrls := []string{"https://api.github.com/repos/example-owner/example-repo"}
-	repoInfos := analyzer.FetchGithubInfo(repoUrls)
+	repoURLs := []string{"https://api.github.com/repos/example-owner/example-repo"}
+	repoInfos := analyzer.FetchGithubInfo(repoURLs)
 
 	assert.Equal(t, 1, len(repoInfos), "Expected 1 repo info")
 

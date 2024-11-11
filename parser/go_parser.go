@@ -30,6 +30,7 @@ func (p GoParser) Parse(filePath string) []LibInfo {
 
 func (p GoParser) collectReplaceModules(file *os.File) []string {
 	var replaceModules []string
+
 	var inReplaceBlock bool
 
 	scanner := bufio.NewScanner(file)
@@ -38,12 +39,16 @@ func (p GoParser) collectReplaceModules(file *os.File) []string {
 
 		if line == "replace (" {
 			inReplaceBlock = true
+
 			continue
 		}
+
 		if line == ")" && inReplaceBlock {
 			inReplaceBlock = false
+
 			continue
 		}
+
 		if inReplaceBlock {
 			parts := strings.Fields(line)
 			if len(parts) > 0 {
@@ -52,12 +57,17 @@ func (p GoParser) collectReplaceModules(file *os.File) []string {
 		}
 	}
 
-	file.Seek(0, 0) // Reset file pointer for next pass
+	if _, err := file.Seek(0, 0); err != nil { // Reset file pointer for next pass
+		utils.StdErrorPrintln("Failed to reset file pointer: %v", err)
+		os.Exit(1)
+	}
+
 	return replaceModules
 }
 
 func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []LibInfo {
 	var libInfoList []LibInfo
+
 	var inRequireBlock bool
 
 	scanner := bufio.NewScanner(file)
@@ -66,24 +76,31 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []
 
 		if line == "require (" {
 			inRequireBlock = true
+
 			continue
 		}
+
 		if line == ")" && inRequireBlock {
 			inRequireBlock = false
+
 			continue
 		}
+
 		if inRequireBlock && !strings.Contains(line, "// indirect") {
 			parts := strings.Fields(line)
 			if len(parts) > 0 {
 				module := parts[0]
 				libParts := strings.Split(parts[0], "/")
 				libName := libParts[len(libParts)-1]
+
 				var newLib LibInfo
+
 				if contains(replaceModules, module) {
 					newLib = LibInfo{Name: libName, Skip: true, SkipReason: "replaced module"}
 				} else {
 					newLib = LibInfo{Name: libName, Others: []string{parts[0], parts[1]}}
 				}
+
 				libInfoList = append(libInfoList, newLib)
 			}
 		}
@@ -93,6 +110,7 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []
 		utils.StdErrorPrintln("Failed to scan file %v", err)
 		os.Exit(1)
 	}
+
 	return libInfoList
 }
 
@@ -102,6 +120,7 @@ func contains(slice []string, item string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -112,6 +131,7 @@ func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 		if libInfo.Skip {
 			continue
 		}
+
 		name := libInfo.Others[0]
 		version := libInfo.Others[1]
 
@@ -119,36 +139,41 @@ func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 		if err != nil {
 			libInfo.Skip = true
 			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
+
 			utils.StdErrorPrintln("%s does not support libraries hosted outside of Github: %s", name, err)
+
 			continue
 		}
+
 		libInfo.RepositoryUrl = repoURL
 	}
+
 	return libInfoList
 }
 
 type GoRepository struct {
-	Version string `json:"Version"`
-	Time    string `json:"Time"`
-	Origin  Origin `json:"Origin"`
+	Version string `json:"version"`
+	Time    string `json:"time"`
+	Origin  Origin `json:"origin"`
 }
 
 type Origin struct {
-	VCS  string `json:"VCS"`
-	URL  string `json:"URL"`
-	Ref  string `json:"Ref"`
-	Hash string `json:"Hash"`
+	VCS  string `json:"vcs"`
+	URL  string `json:"url"`
+	Ref  string `json:"ref"`
+	Hash string `json:"hash"`
 }
 
 func (p GoParser) getGitHubRepositoryURL(name, version string) (string, error) {
 	baseURL := "https://proxy.golang.org/"
-	repoUrl := baseURL + name + "/@v/" + version + ".info"
-	utils.DebugPrintln("Fetching: " + repoUrl)
-	response, err := http.Get(repoUrl)
+	repoURL := baseURL + name + "/@v/" + version + ".info"
+	utils.DebugPrintln("Fetching: " + repoURL)
+	response, err := http.Get(repoURL)
 
 	if err != nil {
 		return "", fmt.Errorf("can't get the gem repository, skipping")
 	}
+
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
@@ -167,11 +192,11 @@ func (p GoParser) getGitHubRepositoryURL(name, version string) (string, error) {
 		return "", fmt.Errorf("failed to unmarshal JSON response")
 	}
 
-	repoURL := repo.Origin.URL
+	repoURLfromGithub := repo.Origin.URL
 
-	if repoURL == "" || !strings.Contains(repoURL, "github.com") {
+	if repoURLfromGithub == "" || !strings.Contains(repoURLfromGithub, "github.com") {
 		return "", fmt.Errorf("not a GitHub repository, skipping")
 	}
 
-	return repoURL, nil
+	return repoURLfromGithub, nil
 }

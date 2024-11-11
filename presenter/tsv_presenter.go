@@ -14,6 +14,7 @@ func (p TsvPresenter) Display() {
 
 func (p TsvPresenter) makeHeader() []string {
 	headerRow := strings.Join(headerString, "\t")
+
 	return []string{headerRow}
 }
 

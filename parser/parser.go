@@ -23,6 +23,7 @@ var selectedParser Parser
 
 func SelectParser(language string) Parser {
 	var parser Parser
+
 	switch language {
 	case "ruby":
 		parser = RubyParser{}
@@ -32,7 +33,9 @@ func SelectParser(language string) Parser {
 		utils.StdErrorPrintln("Error: Unsupported language: %s", language)
 		os.Exit(1)
 	}
+
 	selectedParser = parser
+
 	return parser
 }
 
@@ -41,5 +44,6 @@ func Parse(file string) []LibInfo {
 		utils.StdErrorPrintln("Error: Parser not selected")
 		os.Exit(1)
 	}
+
 	return selectedParser.Parse(file)
 }

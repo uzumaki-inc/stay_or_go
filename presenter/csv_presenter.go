@@ -14,6 +14,7 @@ func (p CsvPresenter) Display() {
 
 func (p CsvPresenter) makeHeader() []string {
 	headerRow := strings.Join(headerString, ", ")
+
 	return []string{headerRow}
 }
 

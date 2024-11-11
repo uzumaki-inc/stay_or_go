@@ -7,6 +7,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	defaultWatcherWeight         = 0.1
+	defaultStarWeight            = 0.1
+	defaultForkWeight            = 0.1
+	defaultOpenPullRequestWeight = 0.01
+	defaultOpenIssueWeight       = 0.01
+	defaultLastCommitDateWeight  = -0.05
+	defaultArchivedWeight        = -1000000
+)
+
 type ParameterWeights struct {
 	Watchers         float64 `mapstructure:"watchers"`
 	Stars            float64 `mapstructure:"stars"`
@@ -19,18 +29,19 @@ type ParameterWeights struct {
 
 func NewParameterWeights() ParameterWeights {
 	return ParameterWeights{
-		Watchers:         0.1,
-		Stars:            0.1,
-		Forks:            0.1,
-		OpenPullRequests: 0.01,
-		OpenIssues:       0.01,
-		LastCommitDate:   -0.05,
-		Archived:         -1000000,
+		Watchers:         defaultWatcherWeight,
+		Stars:            defaultStarWeight,
+		Forks:            defaultForkWeight,
+		OpenPullRequests: defaultOpenPullRequestWeight,
+		OpenIssues:       defaultOpenIssueWeight,
+		LastCommitDate:   defaultLastCommitDateWeight,
+		Archived:         defaultArchivedWeight,
 	}
 }
 
 func NewParameterWeightsFromConfiFile(configFilePath string) ParameterWeights {
 	viper.SetConfigFile(configFilePath)
+
 	if err := viper.ReadInConfig(); err != nil {
 		utils.StdErrorPrintln("Failed to read the configuration file: %v\n", err)
 		os.Exit(1)

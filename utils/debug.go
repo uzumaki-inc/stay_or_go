@@ -21,6 +21,7 @@ func StdErrorPrintln(message string, a ...interface{}) {
 func PrintStructFields(s interface{}) {
 	if s == nil {
 		fmt.Println("nil value provided")
+
 		return
 	}
 
@@ -30,14 +31,17 @@ func PrintStructFields(s interface{}) {
 	if val.Kind() == reflect.Ptr {
 		if val.IsNil() {
 			fmt.Println("nil pointer provided")
+
 			return
 		}
+
 		val = val.Elem()
 		typ = typ.Elem()
 	}
 
 	if val.Kind() != reflect.Struct {
 		fmt.Println("provided value is not a struct")
+
 		return
 	}
 

@@ -41,9 +41,9 @@ func (p RubyParser) Parse(file string) []LibInfo {
 		if len(parts) < 2 {
 			continue
 		}
+
 		gemName := strings.Trim(parts[1], `'" ,`)
 		newLib := LibInfo{Name: gemName}
-		// newALI := common.AnalyzedLibInfo{Skip: false, LibInfo: newLib}
 
 		// ここ以降のpartsはカンマ区切りでパースする
 		combinedParts := strings.Join(parts[2:], " ")
@@ -66,6 +66,7 @@ func (p RubyParser) Parse(file string) []LibInfo {
 					break // NGキーが見つかったらこれ以上チェックする必要はない
 				}
 			}
+
 			newLib.Others = append(newLib.Others, cleanedPart)
 		}
 
@@ -94,22 +95,28 @@ func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 		if err != nil {
 			libInfo.Skip = true
 			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
+
 			utils.StdErrorPrintln("%s does not support libraries hosted outside of Github: %s", name, err)
+
 			continue
 		}
+
 		libInfo.RepositoryUrl = repoURL
 	}
+
 	return libInfoList
 }
 
 func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {
 	baseURL := "https://rubygems.org/api/v1/gems/"
-	repoUrl := baseURL + name + ".json"
-	utils.DebugPrintln("Fetching: " + repoUrl)
-	response, err := http.Get(repoUrl)
+	repoURL := baseURL + name + ".json"
+	utils.DebugPrintln("Fetching: " + repoURL)
+	response, err := http.Get(repoURL)
+
 	if err != nil {
 		return "", fmt.Errorf("can't get the gem repository, skipping")
 	}
+
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
@@ -123,16 +130,17 @@ func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {
 
 	var repo RubyRepository
 	err = json.Unmarshal(bodyBytes, &repo)
+
 	if err != nil {
 		return "", fmt.Errorf("failed to unmarshal JSON response")
 	}
 
-	repoURL := repo.SourceCodeURI
-	if repoURL == "" {
-		repoURL = repo.HomepageURI
+	repoURLfromRubyGems := repo.SourceCodeURI
+	if repoURLfromRubyGems == "" {
+		repoURLfromRubyGems = repo.HomepageURI
 	}
 
-	if repoURL == "" || !strings.Contains(repoURL, "github.com") {
+	if repoURLfromRubyGems == "" || !strings.Contains(repoURLfromRubyGems, "github.com") {
 		return "", fmt.Errorf("not a GitHub repository, skipping")
 	}
 

@@ -19,6 +19,7 @@ func (p MarkdownPresenter) makeHeader() []string {
 	for _, header := range headerString {
 		separatorRow += " " + strings.Repeat("-", len(header)) + " |"
 	}
+
 	return []string{headerRow, separatorRow}
 }
 

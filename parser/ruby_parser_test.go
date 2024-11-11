@@ -14,9 +14,11 @@ func TestRubyParser_Parse(t *testing.T) {
 gem 'nokogiri', git: 'https://github.com/sparklemotion/nokogiri.git'
 gem 'puma'`
 	tempFile, err := os.CreateTemp("", "testfile-*.txt")
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	defer tempFile.Close()
 	defer os.Remove(tempFile.Name())
 
