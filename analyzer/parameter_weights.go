@@ -18,24 +18,22 @@ const (
 )
 
 type ParameterWeights struct {
-	Watchers         float64 `mapstructure:"watchers"`
-	Stars            float64 `mapstructure:"stars"`
-	Forks            float64 `mapstructure:"forks"`
-	OpenPullRequests float64 `mapstructure:"open_pull_requests"`
-	OpenIssues       float64 `mapstructure:"open_issues"`
-	LastCommitDate   float64 `mapstructure:"last_commit_date"`
-	Archived         float64 `mapstructure:"archived"`
+	Watchers       float64 `mapstructure:"watchers"`
+	Stars          float64 `mapstructure:"stars"`
+	Forks          float64 `mapstructure:"forks"`
+	OpenIssues     float64 `mapstructure:"open_issues"`
+	LastCommitDate float64 `mapstructure:"last_commit_date"`
+	Archived       float64 `mapstructure:"archived"`
 }
 
 func NewParameterWeights() ParameterWeights {
 	return ParameterWeights{
-		Watchers:         defaultWatcherWeight,
-		Stars:            defaultStarWeight,
-		Forks:            defaultForkWeight,
-		OpenPullRequests: defaultOpenPullRequestWeight,
-		OpenIssues:       defaultOpenIssueWeight,
-		LastCommitDate:   defaultLastCommitDateWeight,
-		Archived:         defaultArchivedWeight,
+		Watchers:       defaultWatcherWeight,
+		Stars:          defaultStarWeight,
+		Forks:          defaultForkWeight,
+		OpenIssues:     defaultOpenIssueWeight,
+		LastCommitDate: defaultLastCommitDateWeight,
+		Archived:       defaultArchivedWeight,
 	}
 }
 

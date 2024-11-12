@@ -38,11 +38,10 @@ func TestFetchGithubInfo(t *testing.T) {
 
 	// テスト用のGitHubRepoAnalyzerを作成
 	analyzer := NewGitHubRepoAnalyzer("dummy-token", ParameterWeights{
-		Forks:            1.0,
-		OpenPullRequests: 1.0,
-		OpenIssues:       1.0,
-		LastCommitDate:   1.0,
-		Archived:         1.0,
+		Forks:          1.0,
+		OpenIssues:     1.0,
+		LastCommitDate: 1.0,
+		Archived:       1.0,
 	})
 
 	// テスト実行
@@ -57,7 +56,6 @@ func TestFetchGithubInfo(t *testing.T) {
 	assert.Equal(t, 10, repoInfo.Watchers, "Watchers mismatch")
 	assert.Equal(t, 50, repoInfo.Stars, "Stars mismatch")
 	assert.Equal(t, 5, repoInfo.Forks, "Forks mismatch")
-	assert.Equal(t, 0, repoInfo.OpenPullRequests, "OpenPullRequests mismatch")
 	assert.Equal(t, 3, repoInfo.OpenIssues, "OpenIssues mismatch")
 	assert.False(t, repoInfo.Archived, "Archived should be false")
 	assert.False(t, repoInfo.Skip, "Skip should be false")

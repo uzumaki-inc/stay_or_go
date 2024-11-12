@@ -26,18 +26,17 @@ var (
 )
 
 type GitHubRepoInfo struct {
-	RepositoryName   string
-	Watchers         int
-	Stars            int
-	Forks            int
-	OpenPullRequests int
-	OpenIssues       int
-	LastCommitDate   string
-	GithubRepoURL    string
-	Archived         bool
-	Score            int
-	Skip             bool   // スキップするかどうかのフラグ
-	SkipReason       string // スキップ理由
+	RepositoryName string
+	Watchers       int
+	Stars          int
+	Forks          int
+	OpenIssues     int
+	LastCommitDate string
+	GithubRepoURL  string
+	Archived       bool
+	Score          int
+	Skip           bool   // スキップするかどうかのフラグ
+	SkipReason     string // スキップ理由
 }
 
 type GitHubRepoAnalyzer struct {
@@ -55,11 +54,15 @@ func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAn
 // FetchInfo fetches information for each repository
 func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo {
 	libraryInfoList := make([]GitHubRepoInfo, 0, len(repositoryUrls))
+	client := &http.Client{}
+	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+
+	defer cancel()
 
 	for _, repoURL := range repositoryUrls {
 		utils.DebugPrintln("Fetching: " + repoURL)
 
-		libraryInfo, err := g.getGitHubInfo(repoURL)
+		libraryInfo, err := g.getGitHubInfo(ctx, client, repoURL)
 		if err != nil {
 			libraryInfo = &GitHubRepoInfo{
 				Skip:       true,
@@ -78,27 +81,22 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRe
 
 const timeOutSec = 5
 
-func (g *GitHubRepoAnalyzer) getGitHubInfo(repoURL string) (*GitHubRepoInfo, error) {
+func (g *GitHubRepoAnalyzer) getGitHubInfo(
+	ctx context.Context,
+	client *http.Client,
+	repoURL string,
+) (*GitHubRepoInfo, error) {
 	if g.githubToken == "" {
 		return nil, ErrGitHubTokenNotSet
 	}
 
 	owner, repo := parseRepoURL(repoURL)
 
-	client := &http.Client{}
 	headers := map[string]string{
 		"Authorization": "token " + g.githubToken,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
-	defer cancel()
-
 	repoData, err := fetchRepoData(ctx, client, owner, repo, headers)
-	if err != nil {
-		return nil, err
-	}
-
-	openPullRequests, err := fetchOpenPullRequests(ctx, client, owner, repo, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +106,7 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoURL string) (*GitHubRepoInfo, err
 		return nil, err
 	}
 
-	repoInfo, err := createRepoInfo(repoData, openPullRequests, lastCommitDate)
+	repoInfo, err := createRepoInfo(repoData, lastCommitDate)
 	if err != nil {
 		return nil, err
 	}
@@ -145,23 +143,6 @@ func fetchRepoData(
 	return fetchJSON(ctx, client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers)
 }
 
-func fetchOpenPullRequests(
-	ctx context.Context,
-	client *http.Client,
-	owner, repo string,
-	headers map[string]string,
-) (int, error) {
-	pullRequestsData, err := fetchJSONArray(
-		ctx, client,
-		fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls", owner, repo),
-		headers)
-	if err != nil {
-		return 0, err
-	}
-
-	return len(pullRequestsData), nil
-}
-
 func fetchLastCommitDate(ctx context.Context, client *http.Client, owner, repo string,
 	repoData map[string]interface{}, headers map[string]string) (string, error) {
 	defaultBranch, isString := repoData["default_branch"].(string)
@@ -186,7 +167,6 @@ func fetchLastCommitDate(ctx context.Context, client *http.Client, owner, repo s
 
 func createRepoInfo(
 	repoData map[string]interface{},
-	openPullRequests int,
 	lastCommitDate string,
 ) (*GitHubRepoInfo, error) {
 	repoName, ok := repoData["name"].(string)
@@ -220,16 +200,15 @@ func createRepoInfo(
 	}
 
 	return &GitHubRepoInfo{
-		RepositoryName:   repoName,
-		Watchers:         int(subscribersCount),
-		Stars:            int(stargazersCount),
-		Forks:            int(forksCount),
-		OpenPullRequests: openPullRequests,
-		OpenIssues:       int(openIssuesCount),
-		LastCommitDate:   lastCommitDate,
-		Archived:         archived,
-		Skip:             false,
-		SkipReason:       "",
+		RepositoryName: repoName,
+		Watchers:       int(subscribersCount),
+		Stars:          int(stargazersCount),
+		Forks:          int(forksCount),
+		OpenIssues:     int(openIssuesCount),
+		LastCommitDate: lastCommitDate,
+		Archived:       archived,
+		Skip:           false,
+		SkipReason:     "",
 	}, nil
 }
 
@@ -245,7 +224,6 @@ func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
 
 	score := float64(repoInfo.Stars) * weights.Stars
 	score += float64(repoInfo.Forks) * weights.Forks
-	score += float64(repoInfo.OpenPullRequests) * weights.OpenPullRequests
 	score += float64(repoInfo.OpenIssues) * weights.OpenIssues
 	score += float64(days) * weights.LastCommitDate
 	intArchived := map[bool]float64{true: 1.0, false: 0.0}[repoInfo.Archived]

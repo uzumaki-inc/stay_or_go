@@ -11,10 +11,10 @@ import (
 func TestMakeBody(t *testing.T) {
 	libInfo1 := parser.LibInfo{Name: "lib1", RepositoryURL: "https://github.com/lib1"}
 	repoInfo1 := analyzer.GitHubRepoInfo{RepositoryName: "lib1", Watchers: 100, Stars: 200, Forks: 50,
-		OpenPullRequests: 5, OpenIssues: 10, LastCommitDate: "2023-10-10", Archived: false, Score: 85}
+		OpenIssues: 10, LastCommitDate: "2023-10-10", Archived: false, Score: 85}
 	libInfo2 := parser.LibInfo{Name: "lib2", RepositoryURL: "https://github.com/lib2"}
 	repoInfo2 := analyzer.GitHubRepoInfo{RepositoryName: "lib2", Watchers: 150, Stars: 250, Forks: 60,
-		OpenPullRequests: 7, OpenIssues: 15, LastCommitDate: "2023-10-11", Archived: false, Score: 90}
+		OpenIssues: 15, LastCommitDate: "2023-10-11", Archived: false, Score: 90}
 
 	analyzedLibInfos := []AnalyzedLibInfo{
 		{LibInfo: &libInfo1, GitHubRepoInfo: &repoInfo1},

@@ -55,14 +55,6 @@ func (ainfo AnalyzedLibInfo) Forks() *int {
 	return nil
 }
 
-func (ainfo AnalyzedLibInfo) OpenPullRequests() *int {
-	if ainfo.GitHubRepoInfo != nil {
-		return &ainfo.GitHubRepoInfo.OpenPullRequests
-	}
-
-	return nil
-}
-
 func (ainfo AnalyzedLibInfo) OpenIssues() *int {
 	if ainfo.GitHubRepoInfo != nil {
 		return &ainfo.GitHubRepoInfo.OpenIssues
@@ -221,7 +213,6 @@ var headerString = []string{
 	"Watchers",
 	"Stars",
 	"Forks",
-	"OpenPullRequests",
 	"OpenIssues",
 	"LastCommitDate",
 	"Archived",
