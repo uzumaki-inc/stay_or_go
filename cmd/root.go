@@ -33,7 +33,7 @@ var (
 
 // 引数を全部設定するlintを回避
 //
-//nolint:exhaustruct
+//nolint:exhaustruct, lll
 var rootCmd = &cobra.Command{
 	Use:     "StayOrGo",
 	Version: "0.1.0",
@@ -96,17 +96,24 @@ Output the results in Markdown, CSV, or TSV formats.`,
 		analyzer := analyzer.NewGitHubRepoAnalyzer(githubToken, weights)
 
 		utils.StdErrorPrintln("Selecting language... ")
-		parser := parser.SelectParser(language)
+		parser, err := parser.SelectParser(language)
+		if err != nil {
+			utils.StdErrorPrintln("Error selecting parser: %v", err)
+			os.Exit(1)
+		}
 		utils.StdErrorPrintln("Parsing file...")
-		libInfoList := parser.Parse(filePath)
-
+		libInfoList, err := parser.Parse(filePath)
+		if err != nil {
+			utils.StdErrorPrintln("Error parsing file: %v", err)
+			os.Exit(1)
+		}
 		utils.StdErrorPrintln("Getting repository URLs...")
 		parser.GetRepositoryURL(libInfoList)
 
 		var repoURLs []string
 		for _, info := range libInfoList {
 			if !info.Skip {
-				repoURLs = append(repoURLs, info.RepositoryUrl)
+				repoURLs = append(repoURLs, info.RepositoryURL)
 			}
 		}
 

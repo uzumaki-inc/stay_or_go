@@ -30,8 +30,11 @@ gem 'puma'`
 
 	// Parse the file using RubyParser
 	p := RubyParser{}
-	libInfoList := p.Parse(tempFile.Name())
+	libInfoList, err := p.Parse(tempFile.Name())
 
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Assertions
 	assert.Len(t, libInfoList, 3)
 	assert.Equal(t, "rails", libInfoList[0].Name)
@@ -70,9 +73,9 @@ func TestRubyParser_GetRepositoryURL(t *testing.T) {
 	updatedLibInfoList := p.GetRepositoryURL(libInfoList)
 
 	// Assertions
-	assert.Equal(t, "https://github.com/rails/rails", updatedLibInfoList[0].RepositoryUrl)
-	assert.Equal(t, "https://github.com/sparklemotion/nokogiri", updatedLibInfoList[1].RepositoryUrl)
-	assert.Equal(t, "", updatedLibInfoList[2].RepositoryUrl)
+	assert.Equal(t, "https://github.com/rails/rails", updatedLibInfoList[0].RepositoryURL)
+	assert.Equal(t, "https://github.com/sparklemotion/nokogiri", updatedLibInfoList[1].RepositoryURL)
+	assert.Equal(t, "", updatedLibInfoList[2].RepositoryURL)
 	assert.True(t, updatedLibInfoList[2].Skip)
 	assert.Equal(t, "Does not support libraries hosted outside of Github", updatedLibInfoList[2].SkipReason)
 }

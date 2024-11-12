@@ -2,9 +2,7 @@ package parser
 
 import (
 	"errors"
-	"os"
-
-	"github.com/konyu/StayOrGo/utils"
+	"fmt"
 )
 
 var (
@@ -16,46 +14,69 @@ var (
 	ErrNotAGitHubRepository     = errors.New("not a GitHub repository, skipping")
 	ErrFailedToReadResponseBody = errors.New("failed to read response body")
 	ErrFailedToUnmarshalJSON    = errors.New("failed to unmarshal JSON response")
+	ErrInvalidLineFormat        = errors.New("invalid line format")
+	ErrMissingGemName           = errors.New("missing gem name")
+	ErrUnsupportedLanguage      = errors.New("unsupported language")
 )
+
+const timeOutSec = 5
 
 type LibInfo struct {
 	Skip          bool     // スキップするかどうかのフラグ
 	SkipReason    string   // スキップ理由
 	Name          string   // ライブラリの名前
 	Others        []string // その他のライブラリの設定値
-	RepositoryUrl string   // githubのりポトリのURL
+	RepositoryURL string   // githubのりポトリのURL
+}
+
+type LibInfoOption func(*LibInfo)
+
+func WithSkip(skip bool) LibInfoOption {
+	return func(l *LibInfo) {
+		l.Skip = skip
+	}
+}
+
+func WithSkipReason(reason string) LibInfoOption {
+	return func(l *LibInfo) {
+		l.SkipReason = reason
+	}
+}
+
+func WithOthers(others []string) LibInfoOption {
+	return func(l *LibInfo) {
+		l.Others = others
+	}
+}
+
+func NewLibInfo(name string, options ...LibInfoOption) LibInfo {
+	libInfo := LibInfo{
+		Name:          name,
+		Skip:          false,
+		SkipReason:    "",
+		Others:        nil,
+		RepositoryURL: "",
+	}
+
+	for _, option := range options {
+		option(&libInfo)
+	}
+
+	return libInfo
 }
 
 type Parser interface {
-	Parse(file string) []LibInfo
+	Parse(file string) ([]LibInfo, error)
 	GetRepositoryURL(AnalyzedLibInfoList []LibInfo) []LibInfo
 }
 
-var selectedParser Parser
-
-func SelectParser(language string) Parser {
-	var parser Parser
-
+func SelectParser(language string) (Parser, error) {
 	switch language {
 	case "ruby":
-		parser = RubyParser{}
+		return &RubyParser{}, nil
 	case "go":
-		parser = GoParser{}
+		return &GoParser{}, nil
 	default:
-		utils.StdErrorPrintln("Error: Unsupported language: %s", language)
-		os.Exit(1)
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedLanguage, language)
 	}
-
-	selectedParser = parser
-
-	return parser
-}
-
-func Parse(file string) []LibInfo {
-	if selectedParser == nil {
-		utils.StdErrorPrintln("Error: Parser not selected")
-		os.Exit(1)
-	}
-
-	return selectedParser.Parse(file)
 }

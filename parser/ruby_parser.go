@@ -2,12 +2,15 @@ package parser
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/konyu/StayOrGo/utils"
 )
@@ -19,70 +22,98 @@ type RubyRepository struct {
 	HomepageURI   string `json:"homepage_uri"`
 }
 
-func (p RubyParser) Parse(file string) []LibInfo {
-	var libInfoList []LibInfo
-	const minPartsLength = 2
-
-	f, err := os.Open(file)
+func (p RubyParser) Parse(filePath string) ([]LibInfo, error) {
+	file, err := os.Open(filePath)
 	if err != nil {
-		utils.StdErrorPrintln("Failed to read file %v", err)
-		os.Exit(1)
-	}
-	defer f.Close()
+		utils.StdErrorPrintln("%v: %v", ErrFailedToReadFile, err)
 
-	scanner := bufio.NewScanner(f)
+		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
+	}
+	defer file.Close()
+
+	libInfoList, err := p.processFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return libInfoList, nil
+}
+
+func (p RubyParser) processFile(file *os.File) ([]LibInfo, error) {
+	var libInfoList []LibInfo
+
+	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !strings.HasPrefix(strings.TrimSpace(line), "gem ") {
+		libInfo, err := p.processLine(line)
+
+		if err != nil {
+			utils.StdErrorPrintln("Error processing line: %v", err)
+
 			continue
 		}
 
-		parts := strings.Fields(line)
-
-		if len(parts) < minPartsLength {
-			continue
+		if libInfo != nil {
+			libInfoList = append(libInfoList, *libInfo)
 		}
-
-		gemName := strings.Trim(parts[1], `'" ,`)
-		newLib := LibInfo{Name: gemName}
-
-		// ここ以降のpartsはカンマ区切りでパースする
-		combinedParts := strings.Join(parts[2:], " ")
-		splitByComma := strings.Split(combinedParts, ",")
-
-		for _, part := range splitByComma {
-			cleanedPart := strings.TrimSpace(part)
-			if cleanedPart == "" {
-				continue
-			}
-			// NGキーのリスト
-			ngKeys := []string{"source", "git", "github"}
-
-			// cleanedPartがハッシュ形式を表すかチェックし、NGキーが含まれているか判定
-			for _, ngKey := range ngKeys {
-				if strings.HasPrefix(cleanedPart, ":"+ngKey+" ") || strings.HasPrefix(cleanedPart, ngKey+":") {
-					newLib.Skip = true
-					newLib.SkipReason = "does not support libraries hosted outside of Github"
-
-					break // NGキーが見つかったらこれ以上チェックする必要はない
-				}
-			}
-
-			newLib.Others = append(newLib.Others, cleanedPart)
-		}
-
-		libInfoList = append(libInfoList, newLib)
 	}
 
 	if err := scanner.Err(); err != nil {
-		utils.StdErrorPrintln("Failed to scan file %v", err)
-		os.Exit(1)
+		utils.StdErrorPrintln("%v: %v", ErrFailedToScanFile, err)
+
+		return nil, fmt.Errorf("failed to scan file: %w", err)
 	}
 
-	return libInfoList
+	return libInfoList, nil
+}
+
+const minPartsLength = 2
+
+func (p RubyParser) processLine(line string) (*LibInfo, error) {
+	if !strings.HasPrefix(strings.TrimSpace(line), "gem ") {
+		return nil, ErrInvalidLineFormat
+	}
+
+	parts := strings.Fields(line)
+	if len(parts) < minPartsLength {
+		return nil, ErrMissingGemName
+	}
+
+	gemName := strings.Trim(parts[1], `'" ,`)
+	newLib := NewLibInfo(gemName)
+
+	combinedParts := strings.Join(parts[2:], " ")
+	splitByComma := strings.Split(combinedParts, ",")
+
+	for _, part := range splitByComma {
+		cleanedPart := strings.TrimSpace(part)
+		if cleanedPart == "" {
+			continue
+		}
+
+		ngKeys := []string{"source", "git", "github"}
+		for _, ngKey := range ngKeys {
+			if strings.HasPrefix(cleanedPart, ":"+ngKey+" ") || strings.HasPrefix(cleanedPart, ngKey+":") {
+				newLib.Skip = true
+				newLib.SkipReason = "does not support libraries hosted outside of Github"
+
+				break
+			}
+		}
+
+		newLib.Others = append(newLib.Others, cleanedPart)
+	}
+
+	return &newLib, nil
 }
 
 func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
+	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+	defer cancel()
+
+	client := &http.Client{}
+
 	for i := range libInfoList {
 		// ポインタを取得
 		libInfo := &libInfoList[i]
@@ -92,7 +123,7 @@ func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 			continue
 		}
 
-		repoURL, err := p.getGitHubRepositoryURL(name)
+		repoURL, err := p.getGitHubRepositoryURL(ctx, client, name)
 		if err != nil {
 			libInfo.Skip = true
 			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
@@ -102,47 +133,57 @@ func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 			continue
 		}
 
-		libInfo.RepositoryUrl = repoURL
+		libInfo.RepositoryURL = repoURL
 	}
 
 	return libInfoList
 }
 
-func (p RubyParser) getGitHubRepositoryURL(name string) (string, error) {
+func (p RubyParser) getGitHubRepositoryURL(ctx context.Context, client *http.Client, name string) (string, error) {
 	baseURL := "https://rubygems.org/api/v1/gems/"
 	repoURL := baseURL + name + ".json"
 	utils.DebugPrintln("Fetching: " + repoURL)
-	response, err := http.Get(repoURL)
 
+	parsedURL, err := url.Parse(repoURL)
 	if err != nil {
-		return "", fmt.Errorf("can't get the gem repository, skipping")
+		return "", ErrFailedToGetRepository
 	}
 
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
+	if err != nil {
+		return "", ErrFailedToGetRepository
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		return "", ErrFailedToGetRepository
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("not a GitHub repository, skipping")
+		return "", ErrNotAGitHubRepository
 	}
 
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body")
+		return "", ErrFailedToReadResponseBody
 	}
 
 	var repo RubyRepository
 	err = json.Unmarshal(bodyBytes, &repo)
 
 	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal JSON response")
+		return "", ErrFailedToUnmarshalJSON
 	}
 
 	repoURLfromRubyGems := repo.SourceCodeURI
+
 	if repoURLfromRubyGems == "" {
 		repoURLfromRubyGems = repo.HomepageURI
 	}
 
 	if repoURLfromRubyGems == "" || !strings.Contains(repoURLfromRubyGems, "github.com") {
-		return "", fmt.Errorf("not a GitHub repository, skipping")
+		return "", ErrNotAGitHubRepository
 	}
 
 	return repoURLfromRubyGems, nil

@@ -2,18 +2,21 @@ package parser
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/konyu/StayOrGo/utils"
 )
 
 type GoParser struct{}
 
-func (p GoParser) Parse(filePath string) []LibInfo {
+func (p GoParser) Parse(filePath string) ([]LibInfo, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		utils.StdErrorPrintln("%v: %v", ErrFailedToReadFile, err)
@@ -24,7 +27,7 @@ func (p GoParser) Parse(filePath string) []LibInfo {
 	replaceModules := p.collectReplaceModules(file)
 	libInfoList := p.processRequireBlock(file, replaceModules)
 
-	return libInfoList
+	return libInfoList, nil
 }
 
 func (p GoParser) collectReplaceModules(file *os.File) []string {
@@ -95,9 +98,9 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []
 				var newLib LibInfo
 
 				if contains(replaceModules, module) {
-					newLib = LibInfo{Name: libName, Skip: true, SkipReason: "replaced module"}
+					newLib = NewLibInfo(libName, WithSkip(true), WithSkipReason("replaced module"))
 				} else {
-					newLib = LibInfo{Name: libName, Others: []string{parts[0], parts[1]}}
+					newLib = NewLibInfo(libName, WithOthers([]string{parts[0], parts[1]}))
 				}
 
 				libInfoList = append(libInfoList, newLib)
@@ -124,6 +127,11 @@ func contains(slice []string, item string) bool {
 }
 
 func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
+	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+	defer cancel()
+
+	client := &http.Client{}
+
 	for i := range libInfoList {
 		libInfo := &libInfoList[i]
 
@@ -134,7 +142,7 @@ func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 		name := libInfo.Others[0]
 		version := libInfo.Others[1]
 
-		repoURL, err := p.getGitHubRepositoryURL(name, version)
+		repoURL, err := p.getGitHubRepositoryURL(ctx, client, name, version)
 		if err != nil {
 			libInfo.Skip = true
 			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
@@ -144,7 +152,7 @@ func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 			continue
 		}
 
-		libInfo.RepositoryUrl = repoURL
+		libInfo.RepositoryURL = repoURL
 	}
 
 	return libInfoList
@@ -163,12 +171,27 @@ type Origin struct {
 	Hash string `json:"hash"`
 }
 
-func (p GoParser) getGitHubRepositoryURL(name, version string) (string, error) {
+func (p GoParser) getGitHubRepositoryURL(
+	ctx context.Context,
+	client *http.Client,
+	name,
+	version string,
+) (string, error) {
 	baseURL := "https://proxy.golang.org/"
 	repoURL := baseURL + name + "/@v/" + version + ".info"
 	utils.DebugPrintln("Fetching: " + repoURL)
-	response, err := http.Get(repoURL)
 
+	parsedURL, err := url.Parse(repoURL)
+	if err != nil {
+		return "", ErrFailedToGetRepository
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
+	if err != nil {
+		return "", ErrFailedToGetRepository
+	}
+
+	response, err := client.Do(req)
 	if err != nil {
 		return "", ErrFailedToGetRepository
 	}
@@ -187,7 +210,6 @@ func (p GoParser) getGitHubRepositoryURL(name, version string) (string, error) {
 	var repo GoRepository
 
 	err = json.Unmarshal(bodyBytes, &repo)
-
 	if err != nil {
 		return "", ErrFailedToUnmarshalJSON
 	}

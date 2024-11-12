@@ -23,9 +23,9 @@ func (ainfo AnalyzedLibInfo) Name() *string {
 	return nil
 }
 
-func (ainfo AnalyzedLibInfo) RepositoryUrl() *string {
-	if ainfo.LibInfo.RepositoryUrl != "" {
-		return &ainfo.LibInfo.RepositoryUrl
+func (ainfo AnalyzedLibInfo) RepositoryURL() *string {
+	if ainfo.LibInfo.RepositoryURL != "" {
+		return &ainfo.LibInfo.RepositoryURL
 	}
 
 	return nil
@@ -79,7 +79,7 @@ func (ainfo AnalyzedLibInfo) LastCommitDate() *string {
 	return nil
 }
 
-func (ainfo AnalyzedLibInfo) GithubRepoUrl() *string {
+func (ainfo AnalyzedLibInfo) GithubRepoURL() *string {
 	if ainfo.GitHubRepoInfo != nil {
 		return &ainfo.GitHubRepoInfo.GithubRepoURL
 	}
@@ -125,17 +125,23 @@ func (ainfo AnalyzedLibInfo) SkipReason() *string {
 	return nil
 }
 
-func MakeAnalyzedLibInfoList(libInfoList []parser.LibInfo, gitHubRepoInfos []analyzer.GitHubRepoInfo) []AnalyzedLibInfo {
-	var analyzedLibInfos []AnalyzedLibInfo
-	var j = 0
+func MakeAnalyzedLibInfoList(
+	libInfoList []parser.LibInfo,
+	gitHubRepoInfos []analyzer.GitHubRepoInfo,
+) []AnalyzedLibInfo {
+	var analyzedLibInfos = make([]AnalyzedLibInfo, 0, len(libInfoList))
+
+	var repoIndex = 0
 
 	for _, info := range libInfoList {
 		analyzedLibInfo := AnalyzedLibInfo{
-			LibInfo: &info,
+			LibInfo:        &info,
+			GitHubRepoInfo: nil,
 		}
-		if j < len(gitHubRepoInfos) && info.RepositoryUrl == gitHubRepoInfos[j].GithubRepoURL {
-			analyzedLibInfo.GitHubRepoInfo = &gitHubRepoInfos[j]
-			j++
+
+		if repoIndex < len(gitHubRepoInfos) && info.RepositoryURL == gitHubRepoInfos[repoIndex].GithubRepoURL {
+			analyzedLibInfo.GitHubRepoInfo = &gitHubRepoInfos[repoIndex]
+			repoIndex++
 		}
 
 		analyzedLibInfos = append(analyzedLibInfos, analyzedLibInfo)
@@ -211,7 +217,7 @@ func makeBody(analyzedLibInfos []AnalyzedLibInfo, separator string) []string {
 
 var headerString = []string{
 	"Name",
-	"RepositoryUrl",
+	"RepositoryURL",
 	"Watchers",
 	"Stars",
 	"Forks",
@@ -225,16 +231,12 @@ var headerString = []string{
 }
 
 func SelectPresenter(format string, analyzedLibInfos []AnalyzedLibInfo) Presenter {
-	var presenter Presenter
-
 	switch format {
 	case "tsv":
-		presenter = TsvPresenter{analyzedLibInfos}
+		return TsvPresenter{analyzedLibInfos}
 	case "csv":
-		presenter = CsvPresenter{analyzedLibInfos}
+		return CsvPresenter{analyzedLibInfos}
 	default:
-		presenter = MarkdownPresenter{analyzedLibInfos}
+		return MarkdownPresenter{analyzedLibInfos}
 	}
-
-	return presenter
 }

@@ -1,13 +1,28 @@
 package analyzer
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/konyu/StayOrGo/utils"
+)
+
+var (
+	ErrGitHubTokenNotSet           = errors.New("GitHub token not set")
+	ErrFailedToAssertDefaultBranch = errors.New("failed to assert type for default_branch")
+	ErrFailedToAssertDate          = errors.New("failed to assert type for date")
+
+	ErrFailedToAssertName             = errors.New("failed to assert type for name")
+	ErrFailedToAssertSubscribersCount = errors.New("failed to assert type for subscribers_count")
+	ErrFailedToAssertStargazersCount  = errors.New("failed to assert type for stargazers_count")
+	ErrFailedToAssertForksCount       = errors.New("failed to assert type for forks_count")
+	ErrFailedToAssertOpenIssuesCount  = errors.New("failed to assert type for open_issues_count")
+	ErrFailedToAssertArchived         = errors.New("failed to assert type for archived")
 )
 
 type GitHubRepoInfo struct {
@@ -39,7 +54,7 @@ func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAn
 
 // FetchInfo fetches information for each repository
 func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo {
-	var libraryInfoList []GitHubRepoInfo
+	libraryInfoList := make([]GitHubRepoInfo, 0, len(repositoryUrls))
 
 	for _, repoURL := range repositoryUrls {
 		utils.DebugPrintln("Fetching: " + repoURL)
@@ -61,12 +76,49 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRe
 	return libraryInfoList
 }
 
-// getGitHubInfo fetches repository info from GitHub API
+const timeOutSec = 5
+
 func (g *GitHubRepoAnalyzer) getGitHubInfo(repoURL string) (*GitHubRepoInfo, error) {
 	if g.githubToken == "" {
-		return nil, fmt.Errorf("GitHub token not set")
+		return nil, ErrGitHubTokenNotSet
 	}
 
+	owner, repo := parseRepoURL(repoURL)
+
+	client := &http.Client{}
+	headers := map[string]string{
+		"Authorization": "token " + g.githubToken,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+	defer cancel()
+
+	repoData, err := fetchRepoData(ctx, client, owner, repo, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	openPullRequests, err := fetchOpenPullRequests(ctx, client, owner, repo, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	lastCommitDate, err := fetchLastCommitDate(ctx, client, owner, repo, repoData, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	repoInfo, err := createRepoInfo(repoData, openPullRequests, lastCommitDate)
+	if err != nil {
+		return nil, err
+	}
+
+	calcScore(repoInfo, &g.weights)
+
+	return repoInfo, nil
+}
+
+func parseRepoURL(repoURL string) (string, string) {
 	repoURL = strings.TrimSuffix(repoURL, "/")
 	parts := strings.Split(repoURL, "/")
 
@@ -81,50 +133,104 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(repoURL string) (*GitHubRepoInfo, err
 
 	repo = strings.TrimSuffix(repo, ".git")
 
-	client := &http.Client{}
-	headers := map[string]string{
-		"Authorization": "token " + g.githubToken,
-	}
+	return owner, repo
+}
 
-	repoData, err := fetchJSON(client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers)
+func fetchRepoData(
+	ctx context.Context,
+	client *http.Client,
+	owner, repo string,
+	headers map[string]string,
+) (map[string]interface{}, error) {
+	return fetchJSON(ctx, client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers)
+}
+
+func fetchOpenPullRequests(
+	ctx context.Context,
+	client *http.Client,
+	owner, repo string,
+	headers map[string]string,
+) (int, error) {
+	pullRequestsData, err := fetchJSONArray(
+		ctx, client,
+		fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls", owner, repo),
+		headers)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	pullRequestsData, err := fetchJSONArray(client, fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls", owner, repo), headers)
+	return len(pullRequestsData), nil
+}
+
+func fetchLastCommitDate(ctx context.Context, client *http.Client, owner, repo string,
+	repoData map[string]interface{}, headers map[string]string) (string, error) {
+	defaultBranch, isString := repoData["default_branch"].(string)
+	if !isString {
+		return "", ErrFailedToAssertDefaultBranch
+	}
+
+	commitURL := "https://api.github.com/repos/" + owner + "/" + repo + "/commits/" + defaultBranch
+	commitData, err := fetchJSON(ctx, client, commitURL, headers)
+
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	openPullRequests := len(pullRequestsData)
-
-	defaultBranch, ok := repoData["default_branch"].(string)
+	lastCommitDate, ok := commitData["commit"].(map[string]interface{})["committer"].(map[string]interface{})["date"].(string)
 	if !ok {
-		return nil, fmt.Errorf("failed to assert type for default_branch")
+		return "", ErrFailedToAssertDate
 	}
 
-	commitData, err := fetchJSON(client, fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s", owner, repo, defaultBranch), headers)
-	if err != nil {
-		return nil, err
+	return lastCommitDate, nil
+}
+
+func createRepoInfo(
+	repoData map[string]interface{},
+	openPullRequests int,
+	lastCommitDate string,
+) (*GitHubRepoInfo, error) {
+	repoName, ok := repoData["name"].(string)
+	if !ok {
+		return nil, ErrFailedToAssertName
 	}
 
-	lastCommitDate := commitData["commit"].(map[string]interface{})["committer"].(map[string]interface{})["date"].(string)
+	subscribersCount, ok := repoData["subscribers_count"].(float64)
+	if !ok {
+		return nil, ErrFailedToAssertSubscribersCount
+	}
 
-	repoInfo := &GitHubRepoInfo{
-		RepositoryName:   repoData["name"].(string),
-		Watchers:         int(repoData["subscribers_count"].(float64)),
-		Stars:            int(repoData["stargazers_count"].(float64)),
-		Forks:            int(repoData["forks_count"].(float64)),
+	stargazersCount, ok := repoData["stargazers_count"].(float64)
+	if !ok {
+		return nil, ErrFailedToAssertStargazersCount
+	}
+
+	forksCount, ok := repoData["forks_count"].(float64)
+	if !ok {
+		return nil, ErrFailedToAssertForksCount
+	}
+
+	openIssuesCount, ok := repoData["open_issues_count"].(float64)
+	if !ok {
+		return nil, ErrFailedToAssertOpenIssuesCount
+	}
+
+	archived, ok := repoData["archived"].(bool)
+	if !ok {
+		return nil, ErrFailedToAssertArchived
+	}
+
+	return &GitHubRepoInfo{
+		RepositoryName:   repoName,
+		Watchers:         int(subscribersCount),
+		Stars:            int(stargazersCount),
+		Forks:            int(forksCount),
 		OpenPullRequests: openPullRequests,
-		OpenIssues:       int(repoData["open_issues_count"].(float64)),
+		OpenIssues:       int(openIssuesCount),
 		LastCommitDate:   lastCommitDate,
-		Archived:         repoData["archived"].(bool),
+		Archived:         archived,
 		Skip:             false,
 		SkipReason:       "",
-	}
-	calcScore(repoInfo, &g.weights)
-
-	return repoInfo, nil
+	}, nil
 }
 
 func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
@@ -148,6 +254,8 @@ func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
 	repoInfo.Score = int(score)
 }
 
+const hoursOfDay = 24
+
 // 日付文字列から現在日までの経過日数を返す関数
 func daysSince(dateStr string) (int, error) {
 	// 入力された日付文字列をパース（UTCフォーマット）
@@ -160,13 +268,20 @@ func daysSince(dateStr string) (int, error) {
 
 	currentTime := time.Now()
 	duration := currentTime.Sub(parsedTime)
-	days := int(duration.Hours() / 24)
+	days := int(duration.Hours() / hoursOfDay)
 
 	return days, nil
 }
 
-func fetchJSONData(client *http.Client, url string, headers map[string]string, result interface{}) error {
-	req, err := http.NewRequest("GET", url, nil)
+func fetchJSONData(
+	ctx context.Context,
+	client *http.Client,
+	url string,
+	headers map[string]string,
+	result interface{},
+) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+
 	if err != nil {
 		return fmt.Errorf("failed to create new HTTP request for URL %s: %w", url, err)
 	}
@@ -189,17 +304,27 @@ func fetchJSONData(client *http.Client, url string, headers map[string]string, r
 }
 
 // fetchJSON sends a GET request and returns the parsed JSON object (map)
-func fetchJSON(client *http.Client, url string, headers map[string]string) (map[string]interface{}, error) {
+func fetchJSON(
+	ctx context.Context,
+	client *http.Client,
+	url string,
+	headers map[string]string,
+) (map[string]interface{}, error) {
 	var result map[string]interface{}
-	err := fetchJSONData(client, url, headers, &result)
+	err := fetchJSONData(ctx, client, url, headers, &result)
 
 	return result, err
 }
 
 // fetchJSONArray sends a GET request and returns the parsed JSON array (slice)
-func fetchJSONArray(client *http.Client, url string, headers map[string]string) ([]interface{}, error) {
+func fetchJSONArray(
+	ctx context.Context,
+	client *http.Client,
+	url string,
+	headers map[string]string,
+) ([]interface{}, error) {
 	var result []interface{}
-	err := fetchJSONData(client, url, headers, &result)
+	err := fetchJSONData(ctx, client, url, headers, &result)
 
 	return result, err
 }
