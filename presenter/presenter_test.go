@@ -1,29 +1,95 @@
-package presenter
+package presenter_test
 
 import (
+	"bytes"
+	"os"
 	"testing"
 
 	"github.com/konyu/StayOrGo/analyzer"
 	"github.com/konyu/StayOrGo/parser"
+	"github.com/konyu/StayOrGo/presenter"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMakeBody(t *testing.T) {
-	libInfo1 := parser.LibInfo{Name: "lib1", RepositoryURL: "https://github.com/lib1"}
-	repoInfo1 := analyzer.GitHubRepoInfo{RepositoryName: "lib1", Watchers: 100, Stars: 200, Forks: 50,
-		OpenIssues: 10, LastCommitDate: "2023-10-10", Archived: false, Score: 85}
-	libInfo2 := parser.LibInfo{Name: "lib2", RepositoryURL: "https://github.com/lib2"}
-	repoInfo2 := analyzer.GitHubRepoInfo{RepositoryName: "lib2", Watchers: 150, Stars: 250, Forks: 60,
-		OpenIssues: 15, LastCommitDate: "2023-10-11", Archived: false, Score: 90}
+func TestDisplay(t *testing.T) {
+	t.Parallel()
 
-	analyzedLibInfos := []AnalyzedLibInfo{
-		{LibInfo: &libInfo1, GitHubRepoInfo: &repoInfo1},
-		{LibInfo: &libInfo2, GitHubRepoInfo: &repoInfo2},
+	testCases := []struct {
+		name           string
+		presenterFunc  func([]presenter.AnalyzedLibInfo) presenter.Presenter
+		expectedOutput string
+	}{
+		{
+			name: "MarkDown Presenter",
+			presenterFunc: func(analyzedLibInfos []presenter.AnalyzedLibInfo) presenter.Presenter {
+				return presenter.NewMarkdownPresenter(analyzedLibInfos)
+			},
+			//nolint:lll
+			expectedOutput: `| Name | RepositoryURL | Watchers | Stars | Forks | OpenIssues | LastCommitDate | Archived | Score | Skip | SkipReason |
+| ---- | ------------- | -------- | ----- | ----- | ---------- | -------------- | -------- | ----- | ---- | ---------- |
+|lib1|https://github.com/lib1|100|200|50|10|2023-10-10|false|85|false|N/A|
+|lib2|https://github.com/lib2|150|250|60|15|2023-10-11|false|90|false|N/A|
+`,
+		},
+		{
+			name: "TSV Presenter",
+			presenterFunc: func(analyzedLibInfos []presenter.AnalyzedLibInfo) presenter.Presenter {
+				return presenter.NewTsvPresenter(analyzedLibInfos)
+			},
+			//nolint:lll
+			expectedOutput: "Name\tRepositoryURL\tWatchers\tStars\tForks\tOpenIssues\tLastCommitDate\tArchived\tScore\tSkip\tSkipReason\nlib1\thttps://github.com/lib1\t100\t200\t50\t10\t2023-10-10\tfalse\t85\tfalse\tN/A\nlib2\thttps://github.com/lib2\t150\t250\t60\t15\t2023-10-11\tfalse\t90\tfalse\tN/A\n",
+		},
+		{
+			name: "CSV Presenter",
+			presenterFunc: func(analyzedLibInfos []presenter.AnalyzedLibInfo) presenter.Presenter {
+				return presenter.NewCsvPresenter(analyzedLibInfos)
+			},
+			//nolint:lll
+			expectedOutput: "Name, RepositoryURL, Watchers, Stars, Forks, OpenIssues, LastCommitDate, Archived, Score, Skip, SkipReason\nlib1, https://github.com/lib1, 100, 200, 50, 10, 2023-10-10, false, 85, false, N/A\nlib2, https://github.com/lib2, 150, 250, 60, 15, 2023-10-11, false, 90, false, N/A\n",
+		},
 	}
 
-	body := makeBody(analyzedLibInfos, "|")
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 
-	assert.Len(t, body, 2)
-	assert.Equal(t, "|lib1|https://github.com/lib1|100|200|50|5|10|2023-10-10|false|85|false|N/A|", body[0])
-	assert.Equal(t, "|lib2|https://github.com/lib2|150|250|60|7|15|2023-10-11|false|90|false|N/A|", body[1])
+			libInfo1 := parser.LibInfo{Name: "lib1", RepositoryURL: "https://github.com/lib1"}
+			repoInfo1 := analyzer.GitHubRepoInfo{RepositoryName: "lib1", Watchers: 100, Stars: 200, Forks: 50,
+				OpenIssues: 10, LastCommitDate: "2023-10-10", Archived: false, Score: 85}
+			libInfo2 := parser.LibInfo{Name: "lib2", RepositoryURL: "https://github.com/lib2"}
+			repoInfo2 := analyzer.GitHubRepoInfo{RepositoryName: "lib2", Watchers: 150, Stars: 250, Forks: 60,
+				OpenIssues: 15, LastCommitDate: "2023-10-11", Archived: false, Score: 90}
+
+			analyzedLibInfos := []presenter.AnalyzedLibInfo{
+				{LibInfo: &libInfo1, GitHubRepoInfo: &repoInfo1},
+				{LibInfo: &libInfo2, GitHubRepoInfo: &repoInfo2},
+			}
+
+			presenter := testCase.presenterFunc(analyzedLibInfos)
+
+			// 標準出力をキャプチャするためのバッファを作成
+			readPipe, writePipe, _ := os.Pipe()
+			originalStdout := os.Stdout
+
+			defer func() { os.Stdout = originalStdout }() // テスト後に元に戻す
+
+			os.Stdout = writePipe
+
+			// Displayメソッドを呼び出す
+			presenter.Display()
+
+			// 書き込みを閉じてから、キャプチャした出力を取得
+			writePipe.Close()
+
+			var buf bytes.Buffer
+			if _, err := buf.ReadFrom(readPipe); err != nil {
+				t.Fatalf("failed to read from pipe: %v", err)
+			}
+
+			output := buf.String()
+
+			// 期待される出力を検証
+			assert.Equal(t, testCase.expectedOutput, output)
+		})
+	}
 }

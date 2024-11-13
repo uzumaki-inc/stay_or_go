@@ -73,9 +73,9 @@ type Parser interface {
 func SelectParser(language string) (Parser, error) {
 	switch language {
 	case "ruby":
-		return &RubyParser{}, nil
+		return RubyParser{}, nil
 	case "go":
-		return &GoParser{}, nil
+		return GoParser{}, nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedLanguage, language)
 	}

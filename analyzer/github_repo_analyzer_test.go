@@ -1,13 +1,15 @@
-package analyzer
+package analyzer_test
 
 import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/konyu/StayOrGo/analyzer"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFetchGithubInfo(t *testing.T) {
+	t.Parallel()
 	// httpmockを有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -37,7 +39,7 @@ func TestFetchGithubInfo(t *testing.T) {
 		}`))
 
 	// テスト用のGitHubRepoAnalyzerを作成
-	analyzer := NewGitHubRepoAnalyzer("dummy-token", ParameterWeights{
+	analyzer := analyzer.NewGitHubRepoAnalyzer("dummy-token", analyzer.ParameterWeights{
 		Forks:          1.0,
 		OpenIssues:     1.0,
 		LastCommitDate: 1.0,
@@ -48,7 +50,7 @@ func TestFetchGithubInfo(t *testing.T) {
 	repoURLs := []string{"https://api.github.com/repos/example-owner/example-repo"}
 	repoInfos := analyzer.FetchGithubInfo(repoURLs)
 
-	assert.Equal(t, 1, len(repoInfos), "Expected 1 repo info")
+	assert.Len(t, repoInfos, 1, "Expected 1 repo info")
 
 	repoInfo := repoInfos[0]
 

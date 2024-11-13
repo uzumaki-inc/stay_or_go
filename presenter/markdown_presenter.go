@@ -26,3 +26,7 @@ func (p MarkdownPresenter) makeHeader() []string {
 func (p MarkdownPresenter) makeBody() []string {
 	return makeBody(p.analyzedLibInfos, "|")
 }
+
+func NewMarkdownPresenter(infos []AnalyzedLibInfo) MarkdownPresenter {
+	return MarkdownPresenter{analyzedLibInfos: infos}
+}

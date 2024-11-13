@@ -21,3 +21,7 @@ func (p CsvPresenter) makeHeader() []string {
 func (p CsvPresenter) makeBody() []string {
 	return makeBody(p.analyzedLibInfos, ", ")
 }
+
+func NewCsvPresenter(infos []AnalyzedLibInfo) CsvPresenter {
+	return CsvPresenter{analyzedLibInfos: infos}
+}
