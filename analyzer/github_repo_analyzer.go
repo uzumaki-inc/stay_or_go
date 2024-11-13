@@ -25,6 +25,24 @@ var (
 	ErrFailedToAssertArchived         = errors.New("failed to assert type for archived")
 )
 
+type RepoData struct {
+	Name             string `json:"name"`
+	SubscribersCount int    `json:"subscribers_count"`
+	StargazersCount  int    `json:"stargazers_count"`
+	ForksCount       int    `json:"forks_count"`
+	OpenIssuesCount  int    `json:"open_issues_count"`
+	Archived         bool   `json:"archived"`
+	DefaultBranch    string `json:"default_branch"`
+}
+
+type CommitData struct {
+	Commit struct {
+		Committer struct {
+			Date string `json:"date"`
+		} `json:"committer"`
+	} `json:"commit"`
+}
+
 type GitHubRepoInfo struct {
 	RepositoryName string
 	Watchers       int
@@ -106,10 +124,7 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(
 		return nil, err
 	}
 
-	repoInfo, err := createRepoInfo(repoData, lastCommitDate)
-	if err != nil {
-		return nil, err
-	}
+	repoInfo := createRepoInfo(repoData, lastCommitDate)
 
 	calcScore(repoInfo, &g.weights)
 
@@ -139,77 +154,46 @@ func fetchRepoData(
 	client *http.Client,
 	owner, repo string,
 	headers map[string]string,
-) (map[string]interface{}, error) {
-	return fetchJSON(ctx, client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers)
+) (*RepoData, error) {
+	var repoData RepoData
+	err := fetchJSONData(ctx, client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers, &repoData)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &repoData, nil
 }
 
 func fetchLastCommitDate(ctx context.Context, client *http.Client, owner, repo string,
-	repoData map[string]interface{}, headers map[string]string) (string, error) {
-	defaultBranch, isString := repoData["default_branch"].(string)
-	if !isString {
-		return "", ErrFailedToAssertDefaultBranch
-	}
+	repoData *RepoData, headers map[string]string) (string, error) {
+	commitURL := "https://api.github.com/repos/" + owner + "/" + repo + "/commits/" + repoData.DefaultBranch
 
-	commitURL := "https://api.github.com/repos/" + owner + "/" + repo + "/commits/" + defaultBranch
-	commitData, err := fetchJSON(ctx, client, commitURL, headers)
+	var commitData CommitData
+	err := fetchJSONData(ctx, client, commitURL, headers, &commitData)
 
 	if err != nil {
 		return "", err
 	}
 
-	lastCommitDate, ok := commitData["commit"].(map[string]interface{})["committer"].(map[string]interface{})["date"].(string)
-	if !ok {
-		return "", ErrFailedToAssertDate
-	}
-
-	return lastCommitDate, nil
+	return commitData.Commit.Committer.Date, nil
 }
 
 func createRepoInfo(
-	repoData map[string]interface{},
+	repoData *RepoData,
 	lastCommitDate string,
-) (*GitHubRepoInfo, error) {
-	repoName, ok := repoData["name"].(string)
-	if !ok {
-		return nil, ErrFailedToAssertName
-	}
-
-	subscribersCount, ok := repoData["subscribers_count"].(float64)
-	if !ok {
-		return nil, ErrFailedToAssertSubscribersCount
-	}
-
-	stargazersCount, ok := repoData["stargazers_count"].(float64)
-	if !ok {
-		return nil, ErrFailedToAssertStargazersCount
-	}
-
-	forksCount, ok := repoData["forks_count"].(float64)
-	if !ok {
-		return nil, ErrFailedToAssertForksCount
-	}
-
-	openIssuesCount, ok := repoData["open_issues_count"].(float64)
-	if !ok {
-		return nil, ErrFailedToAssertOpenIssuesCount
-	}
-
-	archived, ok := repoData["archived"].(bool)
-	if !ok {
-		return nil, ErrFailedToAssertArchived
-	}
-
+) *GitHubRepoInfo {
 	return &GitHubRepoInfo{
-		RepositoryName: repoName,
-		Watchers:       int(subscribersCount),
-		Stars:          int(stargazersCount),
-		Forks:          int(forksCount),
-		OpenIssues:     int(openIssuesCount),
+		RepositoryName: repoData.Name,
+		Watchers:       repoData.SubscribersCount,
+		Stars:          repoData.StargazersCount,
+		Forks:          repoData.ForksCount,
+		OpenIssues:     repoData.OpenIssuesCount,
 		LastCommitDate: lastCommitDate,
-		Archived:       archived,
+		Archived:       repoData.Archived,
 		Skip:           false,
 		SkipReason:     "",
-	}, nil
+	}
 }
 
 func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
@@ -281,33 +265,6 @@ func fetchJSONData(
 	return nil
 }
 
-// fetchJSON sends a GET request and returns the parsed JSON object (map)
-func fetchJSON(
-	ctx context.Context,
-	client *http.Client,
-	url string,
-	headers map[string]string,
-) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	err := fetchJSONData(ctx, client, url, headers, &result)
-
-	return result, err
-}
-
-// fetchJSONArray sends a GET request and returns the parsed JSON array (slice)
-func fetchJSONArray(
-	ctx context.Context,
-	client *http.Client,
-	url string,
-	headers map[string]string,
-) ([]interface{}, error) {
-	var result []interface{}
-	err := fetchJSONData(ctx, client, url, headers, &result)
-
-	return result, err
-}
-
-// indexOf returns the index of the element in a slice, or -1 if not found
 func indexOf(slice []string, value string) int {
 	for i, v := range slice {
 		if v == value {
