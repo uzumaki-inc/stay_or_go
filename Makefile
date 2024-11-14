@@ -7,3 +7,5 @@ air:
 # golangci-lintを実行
 lint:
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
+lintFix:
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --fix

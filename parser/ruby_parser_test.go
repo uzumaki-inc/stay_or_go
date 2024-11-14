@@ -15,8 +15,8 @@ func TestRubyParser_Parse(t *testing.T) {
 	content := `gem 'rails', '~> 6.0'
 gem 'nokogiri', git: 'https://github.com/sparklemotion/nokogiri.git'
 gem 'puma'`
-	tempFile, err := os.CreateTemp("", "testfile-*.txt")
 
+	tempFile, err := os.CreateTemp("", "testfile-*.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,8 +32,8 @@ gem 'puma'`
 
 	// Parse the file using RubyParser
 	p := parser.RubyParser{}
-	libInfoList, err := p.Parse(tempFile.Name())
 
+	libInfoList, err := p.Parse(tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}

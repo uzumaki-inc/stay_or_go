@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Disable parallel testing to test standard output
+//
+//nolint:tparallel
 func TestDisplay(t *testing.T) {
 	t.Parallel()
 
@@ -24,6 +27,7 @@ func TestDisplay(t *testing.T) {
 			presenterFunc: func(analyzedLibInfos []presenter.AnalyzedLibInfo) presenter.Presenter {
 				return presenter.NewMarkdownPresenter(analyzedLibInfos)
 			},
+
 			//nolint:lll
 			expectedOutput: `| Name | RepositoryURL | Watchers | Stars | Forks | OpenIssues | LastCommitDate | Archived | Score | Skip | SkipReason |
 | ---- | ------------- | -------- | ----- | ----- | ---------- | -------------- | -------- | ----- | ---- | ---------- |
@@ -49,16 +53,19 @@ func TestDisplay(t *testing.T) {
 		},
 	}
 
+	//nolint:paralleltest
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			libInfo1 := parser.LibInfo{Name: "lib1", RepositoryURL: "https://github.com/lib1"}
-			repoInfo1 := analyzer.GitHubRepoInfo{RepositoryName: "lib1", Watchers: 100, Stars: 200, Forks: 50,
-				OpenIssues: 10, LastCommitDate: "2023-10-10", Archived: false, Score: 85}
+			repoInfo1 := analyzer.GitHubRepoInfo{
+				RepositoryName: "lib1", Watchers: 100, Stars: 200, Forks: 50,
+				OpenIssues: 10, LastCommitDate: "2023-10-10", Archived: false, Score: 85,
+			}
 			libInfo2 := parser.LibInfo{Name: "lib2", RepositoryURL: "https://github.com/lib2"}
-			repoInfo2 := analyzer.GitHubRepoInfo{RepositoryName: "lib2", Watchers: 150, Stars: 250, Forks: 60,
-				OpenIssues: 15, LastCommitDate: "2023-10-11", Archived: false, Score: 90}
+			repoInfo2 := analyzer.GitHubRepoInfo{
+				RepositoryName: "lib2", Watchers: 150, Stars: 250, Forks: 60,
+				OpenIssues: 15, LastCommitDate: "2023-10-11", Archived: false, Score: 90,
+			}
 
 			analyzedLibInfos := []presenter.AnalyzedLibInfo{
 				{LibInfo: &libInfo1, GitHubRepoInfo: &repoInfo1},

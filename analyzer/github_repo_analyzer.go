@@ -156,8 +156,8 @@ func fetchRepoData(
 	headers map[string]string,
 ) (*RepoData, error) {
 	var repoData RepoData
-	err := fetchJSONData(ctx, client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers, &repoData)
 
+	err := fetchJSONData(ctx, client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers, &repoData)
 	if err != nil {
 		return nil, err
 	}
@@ -166,12 +166,13 @@ func fetchRepoData(
 }
 
 func fetchLastCommitDate(ctx context.Context, client *http.Client, owner, repo string,
-	repoData *RepoData, headers map[string]string) (string, error) {
+	repoData *RepoData, headers map[string]string,
+) (string, error) {
 	commitURL := "https://api.github.com/repos/" + owner + "/" + repo + "/commits/" + repoData.DefaultBranch
 
 	var commitData CommitData
-	err := fetchJSONData(ctx, client, commitURL, headers, &commitData)
 
+	err := fetchJSONData(ctx, client, commitURL, headers, &commitData)
 	if err != nil {
 		return "", err
 	}
@@ -222,8 +223,8 @@ const hoursOfDay = 24
 func daysSince(dateStr string) (int, error) {
 	// 入力された日付文字列をパース（UTCフォーマット）
 	layout := "2006-01-02T15:04:05Z"
-	parsedTime, err := time.Parse(layout, dateStr)
 
+	parsedTime, err := time.Parse(layout, dateStr)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse date '%s': %w", dateStr, err)
 	}
@@ -243,7 +244,6 @@ func fetchJSONData(
 	result interface{},
 ) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-
 	if err != nil {
 		return fmt.Errorf("failed to create new HTTP request for URL %s: %w", url, err)
 	}

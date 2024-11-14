@@ -46,8 +46,8 @@ func (p RubyParser) processFile(file *os.File) ([]LibInfo, error) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		libInfo, err := p.processLine(line)
 
+		libInfo, err := p.processLine(line)
 		if err != nil {
 			utils.StdErrorPrintln("Error processing line: %v", err)
 
@@ -170,8 +170,8 @@ func (p RubyParser) getGitHubRepositoryURL(ctx context.Context, client *http.Cli
 	}
 
 	var repo RubyRepository
-	err = json.Unmarshal(bodyBytes, &repo)
 
+	err = json.Unmarshal(bodyBytes, &repo)
 	if err != nil {
 		return "", ErrFailedToUnmarshalJSON
 	}

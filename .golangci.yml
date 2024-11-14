@@ -13,7 +13,7 @@ linters:
     - gochecknoglobals # globalな変数の利用を許可する(フラグで利用するため フラグで利用する変数はマジックコメントで退避してもいいかも
     - exportloopref # deprecated
     - ireturn # メソッドの返り値にinterfaceを返す必要があるため
-    - gofumpt # wslのルールとバッティングするのでOff
+    # - gofumpt # wslのルールとバッティングするのでOff
     - exhaustruct # 構造体初期化時にすべて埋めるのは手間なので一時的にOff
 
 linters-settings:

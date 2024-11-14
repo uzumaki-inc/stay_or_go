@@ -42,7 +42,6 @@ var rootCmd = &cobra.Command{
 It generates scores to help you decide whether to keep (‘Stay’) or replace (‘Go’) your dependencies.
 Output the results in Markdown, CSV, or TSV formats.`,
 	Run: func(_ *cobra.Command, args []string) {
-
 		if len(args) == 0 {
 			fmt.Fprintln(os.Stderr, "Please Enter specify a language ("+
 				strings.Join(supportedLanguages, " or ")+")")

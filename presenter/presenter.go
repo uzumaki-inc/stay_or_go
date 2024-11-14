@@ -94,6 +94,7 @@ func (ainfo AnalyzedLibInfo) Score() *int {
 
 	return nil
 }
+
 func (ainfo AnalyzedLibInfo) Skip() *bool {
 	trueValue := true
 	falseValue := false
@@ -121,9 +122,9 @@ func MakeAnalyzedLibInfoList(
 	libInfoList []parser.LibInfo,
 	gitHubRepoInfos []analyzer.GitHubRepoInfo,
 ) []AnalyzedLibInfo {
-	var analyzedLibInfos = make([]AnalyzedLibInfo, 0, len(libInfoList))
+	analyzedLibInfos := make([]AnalyzedLibInfo, 0, len(libInfoList))
 
-	var repoIndex = 0
+	repoIndex := 0
 
 	for _, info := range libInfoList {
 		analyzedLibInfo := AnalyzedLibInfo{
