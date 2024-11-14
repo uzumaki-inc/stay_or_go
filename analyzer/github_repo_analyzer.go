@@ -73,14 +73,11 @@ func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAn
 func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo {
 	libraryInfoList := make([]GitHubRepoInfo, 0, len(repositoryUrls))
 	client := &http.Client{}
-	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
-
-	defer cancel()
 
 	for _, repoURL := range repositoryUrls {
 		utils.DebugPrintln("Fetching: " + repoURL)
 
-		libraryInfo, err := g.getGitHubInfo(ctx, client, repoURL)
+		libraryInfo, err := g.getGitHubInfo(client, repoURL)
 		if err != nil {
 			libraryInfo = &GitHubRepoInfo{
 				Skip:       true,
@@ -100,7 +97,6 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRe
 const timeOutSec = 5
 
 func (g *GitHubRepoAnalyzer) getGitHubInfo(
-	ctx context.Context,
 	client *http.Client,
 	repoURL string,
 ) (*GitHubRepoInfo, error) {
@@ -114,12 +110,12 @@ func (g *GitHubRepoAnalyzer) getGitHubInfo(
 		"Authorization": "token " + g.githubToken,
 	}
 
-	repoData, err := fetchRepoData(ctx, client, owner, repo, headers)
+	repoData, err := fetchRepoData(client, owner, repo, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	lastCommitDate, err := fetchLastCommitDate(ctx, client, owner, repo, repoData, headers)
+	lastCommitDate, err := fetchLastCommitDate(client, owner, repo, repoData, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -150,14 +146,13 @@ func parseRepoURL(repoURL string) (string, string) {
 }
 
 func fetchRepoData(
-	ctx context.Context,
 	client *http.Client,
 	owner, repo string,
 	headers map[string]string,
 ) (*RepoData, error) {
 	var repoData RepoData
 
-	err := fetchJSONData(ctx, client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers, &repoData)
+	err := fetchJSONData(client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers, &repoData)
 	if err != nil {
 		return nil, err
 	}
@@ -165,14 +160,14 @@ func fetchRepoData(
 	return &repoData, nil
 }
 
-func fetchLastCommitDate(ctx context.Context, client *http.Client, owner, repo string,
+func fetchLastCommitDate(client *http.Client, owner, repo string,
 	repoData *RepoData, headers map[string]string,
 ) (string, error) {
 	commitURL := "https://api.github.com/repos/" + owner + "/" + repo + "/commits/" + repoData.DefaultBranch
 
 	var commitData CommitData
 
-	err := fetchJSONData(ctx, client, commitURL, headers, &commitData)
+	err := fetchJSONData(client, commitURL, headers, &commitData)
 	if err != nil {
 		return "", err
 	}
@@ -237,12 +232,14 @@ func daysSince(dateStr string) (int, error) {
 }
 
 func fetchJSONData(
-	ctx context.Context,
 	client *http.Client,
 	url string,
 	headers map[string]string,
 	result interface{},
 ) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+	defer cancel()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create new HTTP request for URL %s: %w", url, err)

@@ -19,7 +19,7 @@ var (
 	ErrUnsupportedLanguage      = errors.New("unsupported language")
 )
 
-const timeOutSec = 5
+const timeOutSec = 30
 
 type LibInfo struct {
 	Skip          bool     // スキップするかどうかのフラグ

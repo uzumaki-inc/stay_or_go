@@ -127,9 +127,6 @@ func contains(slice []string, item string) bool {
 }
 
 func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
-	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
-	defer cancel()
-
 	client := &http.Client{}
 
 	for i := range libInfoList {
@@ -142,7 +139,7 @@ func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 		name := libInfo.Others[0]
 		version := libInfo.Others[1]
 
-		repoURL, err := p.getGitHubRepositoryURL(ctx, client, name, version)
+		repoURL, err := p.getGitHubRepositoryURL(client, name, version)
 		if err != nil {
 			libInfo.Skip = true
 			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
@@ -172,11 +169,13 @@ type Origin struct {
 }
 
 func (p GoParser) getGitHubRepositoryURL(
-	ctx context.Context,
 	client *http.Client,
 	name,
 	version string,
 ) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+	defer cancel()
+
 	baseURL := "https://proxy.golang.org/"
 	repoURL := baseURL + name + "/@v/" + version + ".info"
 	utils.DebugPrintln("Fetching: " + repoURL)

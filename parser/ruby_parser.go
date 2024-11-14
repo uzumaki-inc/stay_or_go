@@ -72,7 +72,7 @@ const minPartsLength = 2
 
 func (p RubyParser) processLine(line string) (*LibInfo, error) {
 	if !strings.HasPrefix(strings.TrimSpace(line), "gem ") {
-		return nil, ErrInvalidLineFormat
+		return nil, nil
 	}
 
 	parts := strings.Fields(line)
@@ -109,9 +109,6 @@ func (p RubyParser) processLine(line string) (*LibInfo, error) {
 }
 
 func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
-	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
-	defer cancel()
-
 	client := &http.Client{}
 
 	for i := range libInfoList {
@@ -123,7 +120,7 @@ func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 			continue
 		}
 
-		repoURL, err := p.getGitHubRepositoryURL(ctx, client, name)
+		repoURL, err := p.getGitHubRepositoryURL(client, name)
 		if err != nil {
 			libInfo.Skip = true
 			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
@@ -139,7 +136,10 @@ func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 	return libInfoList
 }
 
-func (p RubyParser) getGitHubRepositoryURL(ctx context.Context, client *http.Client, name string) (string, error) {
+func (p RubyParser) getGitHubRepositoryURL(client *http.Client, name string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+	defer cancel()
+
 	baseURL := "https://rubygems.org/api/v1/gems/"
 	repoURL := baseURL + name + ".json"
 	utils.DebugPrintln("Fetching: " + repoURL)
