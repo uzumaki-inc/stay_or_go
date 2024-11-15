@@ -13,7 +13,7 @@ func TestRubyParser_Parse(t *testing.T) {
 	t.Parallel()
 	// Create a temporary file for testing
 	content := `gem 'rails', '~> 6.0'
-gem 'nokogiri', git: 'https://github.com/sparklemotion/nokogiri.git'
+gem 'nokogiri', git: 'https://self_hosting_git.com/sparklemotion/nokogiri.git'
 gem 'puma'`
 
 	tempFile, err := os.CreateTemp("", "testfile-*.txt")
@@ -43,7 +43,7 @@ gem 'puma'`
 	assert.False(t, libInfoList[0].Skip)
 	assert.Equal(t, "nokogiri", libInfoList[1].Name)
 	assert.True(t, libInfoList[1].Skip)
-	assert.Equal(t, "does not support libraries hosted outside of Github", libInfoList[1].SkipReason)
+	assert.Equal(t, "Not hosted on Github", libInfoList[1].SkipReason)
 	assert.Equal(t, "puma", libInfoList[2].Name)
 	assert.False(t, libInfoList[2].Skip)
 }

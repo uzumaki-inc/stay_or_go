@@ -8,3 +8,17 @@ gem "self_hosting", git: "https://github.com/konyu/self_hosting_gem.git", tag: "
 
 gem 'webmock', '~> 7.0.0', :require => false
 
+gem 'nokogiri', git: 'https://self_hosting_git.com/sparklemotion/nokogiri.git'
+
+source 'https://gems.com/inside' do
+  gem 'internal-gem'
+end
+
+group :test do
+  gem 'rspec'
+  gem 'rubocop'
+end
+
+platforms :jruby do
+  gem 'jdbc-sqlite3'
+end

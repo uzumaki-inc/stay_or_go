@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -22,90 +23,123 @@ type RubyRepository struct {
 	HomepageURI   string `json:"homepage_uri"`
 }
 
+// Parse メソッド
 func (p RubyParser) Parse(filePath string) ([]LibInfo, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		utils.StdErrorPrintln("%v: %v", ErrFailedToReadFile, err)
-
-		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
-	}
-	defer file.Close()
-
-	libInfoList, err := p.processFile(file)
+	lines, err := p.readLines(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	return libInfoList, nil
-}
+	var libs []LibInfo
 
-func (p RubyParser) processFile(file *os.File) ([]LibInfo, error) {
-	var libInfoList []LibInfo
+	inOtherBlock := false
 
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		libInfo, err := p.processLine(line)
-		if err != nil {
-			utils.StdErrorPrintln("Error processing line: %v", err)
+	for _, line := range lines {
+		if p.isOtherBlockStart(line) {
+			inOtherBlock = true
 
 			continue
 		}
 
-		if libInfo != nil {
-			libInfoList = append(libInfoList, *libInfo)
+		if p.isBlockEnd(line) {
+			inOtherBlock = false
+
+			continue
 		}
+
+		// gem を解析
+		if gemName := p.extractGemName(line); gemName != "" {
+			isNgGem := p.containsInvalidKeywords(line)
+			lib := p.createLibInfo(gemName, isNgGem, inOtherBlock)
+			libs = append(libs, lib)
+		}
+	}
+
+	return libs, nil
+}
+
+// ファイルの内容を行ごとに読み取る
+func (p *RubyParser) readLines(filePath string) ([]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("error opening file: %v", err)
+	}
+	defer file.Close()
+
+	var lines []string
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, strings.TrimSpace(scanner.Text()))
 	}
 
 	if err := scanner.Err(); err != nil {
-		utils.StdErrorPrintln("%v: %v", ErrFailedToScanFile, err)
-
-		return nil, fmt.Errorf("failed to scan file: %w", err)
+		return nil, fmt.Errorf("error reading file: %v", err)
 	}
 
-	return libInfoList, nil
+	return lines, nil
 }
 
-const minPartsLength = 2
+// その他のブロックの開始か判定
+func (p *RubyParser) isOtherBlockStart(line string) bool {
+	sourceStartRegex := regexp.MustCompile(`source\s+['"].+['"]\s+do`)
+	platformsStartRegex := regexp.MustCompile(`platforms\s+[:\w,]+\s+do`)
+	installIfStartRegex := regexp.MustCompile(`install_if\s+->\s+\{.*\}\s+do`)
 
-func (p RubyParser) processLine(line string) (*LibInfo, error) {
-	if !strings.HasPrefix(strings.TrimSpace(line), "gem ") {
-		return nil, nil
+	return sourceStartRegex.MatchString(line) ||
+		platformsStartRegex.MatchString(line) ||
+		installIfStartRegex.MatchString(line)
+}
+
+// ブロックの終了か判定
+func (p *RubyParser) isBlockEnd(line string) bool {
+	endRegex := regexp.MustCompile(`^end$`)
+
+	return endRegex.MatchString(line)
+}
+
+// gem 名を抽出
+func (p *RubyParser) extractGemName(line string) string {
+	gemRegex := regexp.MustCompile(`gem ['"]([^'"]+)['"]`)
+
+	if matches := gemRegex.FindStringSubmatch(line); matches != nil {
+		return matches[1]
 	}
 
-	parts := strings.Fields(line)
-	if len(parts) < minPartsLength {
-		return nil, ErrMissingGemName
-	}
+	return ""
+}
 
-	gemName := strings.Trim(parts[1], `'" ,`)
-	newLib := NewLibInfo(gemName)
+func (p *RubyParser) containsInvalidKeywords(line string) bool {
+	// カンマ区切りで分割
+	parts := strings.Split(line, ",")
 
-	combinedParts := strings.Join(parts[2:], " ")
-	splitByComma := strings.Split(combinedParts, ",")
+	// 判定するキーワード
+	ngKeywords := []string{"source", "git", "github"}
 
-	for _, part := range splitByComma {
-		cleanedPart := strings.TrimSpace(part)
-		if cleanedPart == "" {
-			continue
-		}
-
-		ngKeys := []string{"source", "git", "github"}
-		for _, ngKey := range ngKeys {
-			if strings.HasPrefix(cleanedPart, ":"+ngKey+" ") || strings.HasPrefix(cleanedPart, ngKey+":") {
-				newLib.Skip = true
-				newLib.SkipReason = "does not support libraries hosted outside of Github"
-
-				break
+	// 2番目以降をチェック
+	for _, part := range parts[1:] {
+		trimmedPart := strings.TrimSpace(part)
+		for _, keyword := range ngKeywords {
+			if strings.Contains(trimmedPart, keyword) {
+				return true
 			}
 		}
-
-		newLib.Others = append(newLib.Others, cleanedPart)
 	}
 
-	return &newLib, nil
+	return false
+}
+
+func (p *RubyParser) createLibInfo(gemName string, isNgGem bool, inOtherBlock bool) LibInfo {
+	lib := LibInfo{Name: gemName}
+	if isNgGem {
+		lib.Skip = true
+		lib.SkipReason = "Not hosted on Github"
+	} else if inOtherBlock {
+		lib.Skip = true
+		lib.SkipReason = "Not hosted on Github"
+	}
+
+	return lib
 }
 
 func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
