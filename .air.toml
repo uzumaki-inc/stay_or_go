@@ -7,7 +7,6 @@ cmd = "go build -o ./tmp/main ."
 # and runs golangci-lint once per directory for the changed files.
 pre_cmd = [
   "make lintFix",
-  "make lint",
   "go test ./... "
 ]
 
