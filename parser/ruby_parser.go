@@ -62,7 +62,7 @@ func (p RubyParser) Parse(filePath string) ([]LibInfo, error) {
 func (p *RubyParser) readLines(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("error opening file: %v", err)
+		return nil, fmt.Errorf("%w: %w", ErrFiledToOpenFile, err)
 	}
 	defer file.Close()
 
@@ -74,7 +74,7 @@ func (p *RubyParser) readLines(filePath string) ([]string, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading file: %v", err)
+		return nil, fmt.Errorf("%w: %w", ErrFailedToReadFile, err)
 	}
 
 	return lines, nil

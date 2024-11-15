@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrMethodNotFound           = errors.New("method not found in struct")
+	ErrFiledToOpenFile          = errors.New("error opening file")
 	ErrFailedToReadFile         = errors.New("failed to read file")
 	ErrFailedToResetFilePointer = errors.New("failed to reset file pointer")
 	ErrFailedToScanFile         = errors.New("failed to scan file")

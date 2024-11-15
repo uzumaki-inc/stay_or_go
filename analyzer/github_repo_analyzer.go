@@ -23,6 +23,12 @@ var (
 	ErrFailedToAssertForksCount       = errors.New("failed to assert type for forks_count")
 	ErrFailedToAssertOpenIssuesCount  = errors.New("failed to assert type for open_issues_count")
 	ErrFailedToAssertArchived         = errors.New("failed to assert type for archived")
+	ErrUnexpectedStatusCode           = errors.New("unexpected status code")
+)
+
+const (
+	hoursOfDay = 24
+	timeOutSec = 5
 )
 
 type RepoData struct {
@@ -93,8 +99,6 @@ func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRe
 
 	return libraryInfoList
 }
-
-const timeOutSec = 5
 
 func (g *GitHubRepoAnalyzer) getGitHubInfo(
 	client *http.Client,
@@ -212,8 +216,6 @@ func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
 	repoInfo.Score = int(score)
 }
 
-const hoursOfDay = 24
-
 // 日付文字列から現在日までの経過日数を返す関数
 func daysSince(dateStr string) (int, error) {
 	// 入力された日付文字列をパース（UTCフォーマット）
@@ -254,6 +256,10 @@ func fetchJSONData(
 		return fmt.Errorf("failed to execute HTTP request for URL %s: %w", url, err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%w: %d for URL %s", ErrUnexpectedStatusCode, resp.StatusCode, url)
+	}
 
 	if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
 		return fmt.Errorf("failed to decode JSON response for URL %s: %w", url, err)
