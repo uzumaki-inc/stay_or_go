@@ -206,14 +206,28 @@ func (p GoParser) getGitHubRepositoryURL(
 		return "", ErrFailedToReadResponseBody
 	}
 
+	repoURLfromGithub, err := extractRepoURL(bodyBytes, name)
+	if err != nil {
+		return "", err
+	}
+
+	return repoURLfromGithub, nil
+}
+
+func extractRepoURL(bodyBytes []byte, name string) (string, error) {
 	var repo GoRepository
 
-	err = json.Unmarshal(bodyBytes, &repo)
+	err := json.Unmarshal(bodyBytes, &repo)
 	if err != nil {
 		return "", ErrFailedToUnmarshalJSON
 	}
 
 	repoURLfromGithub := repo.Origin.URL
+
+	// If there is no URL, use the package name
+	if repoURLfromGithub == "" && strings.Contains(name, "github.com") {
+		repoURLfromGithub = "https://" + name
+	}
 
 	if repoURLfromGithub == "" || !strings.Contains(repoURLfromGithub, "github.com") {
 		return "", ErrNotAGitHubRepository
