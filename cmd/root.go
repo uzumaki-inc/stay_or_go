@@ -75,8 +75,7 @@ Output the results in Markdown, CSV, or TSV formats.`,
 		if githubToken == "" {
 			githubToken = os.Getenv("GITHUB_TOKEN")
 			if githubToken == "" {
-				fmt.Fprintln(os.Stderr, `Please provide a GitHub token using the --github-token flag
-			 or set the GITHUB_TOKEN environment variable`)
+				fmt.Fprintln(os.Stderr, "Please provide a GitHub token using the --github-token flag or set the GITHUB_TOKEN environment variable")
 				os.Exit(1)
 			}
 		}
