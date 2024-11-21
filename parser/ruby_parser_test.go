@@ -6,7 +6,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
-	"github.com/uzumaki-inc/StayOrGo/parser"
+	"github.com/uzumaki-inc/stay_or_go/parser"
 )
 
 func TestRubyParser_Parse(t *testing.T) {

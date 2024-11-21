@@ -1,6 +1,6 @@
-# StayOrGo
+# stay_or_go
 
-StayOrGo is a CLI tool that analyzes Go and Ruby dependencies to evaluate their popularity and maintenance status. This tool generates scores to help you decide whether to "Stay" with or "Go" from your dependencies. Results can be output in Markdown, CSV, or TSV formats.
+stay_or_go is a CLI tool that analyzes Go and Ruby dependencies to evaluate their popularity and maintenance status. This tool generates scores to help you decide whether to "Stay" with or "Go" from your dependencies. Results can be output in Markdown, CSV, or TSV formats.
 
 ## Features
 
@@ -13,15 +13,15 @@ StayOrGo is a CLI tool that analyzes Go and Ruby dependencies to evaluate their 
 To install this tool, you need a Go environment. Use the following command to install:
 
 ```bash
-go install github.com/uzumaki-inc/StayOrGo@latest
+go install github.com/uzumaki-inc/stay_or_go@latest
 ```
 
 ## Usage
 
-To use StayOrGo, run the following command:
+To use stay_or_go, run the following command:
 
 ```bash
-StayOrGo [flags]
+stay_or_go [flags]
 ```
 
 
@@ -38,13 +38,13 @@ StayOrGo [flags]
 Example of evaluating Go dependencies in Markdown format:
 
 ```bash
-StayOrGo go -g YOUR_GITHUB_TOKEN
+stay_or_go go -g YOUR_GITHUB_TOKEN
 ```
 
 Example of evaluating Ruby dependencies in CSV format:
 
 ```bash
-StayOrGo ruby -i ./path/to/your/Gemfile -f csv --github-token YOUR_GITHUB_TOKEN
+stay_or_go ruby -i ./path/to/your/Gemfile -f csv --github-token YOUR_GITHUB_TOKEN
 ```
 
 ### Using GITHUB_TOKEN Environment Variable
@@ -53,7 +53,7 @@ If the `GITHUB_TOKEN` is set as an environment variable, the `-g` option is not 
 
 ```bash
 export GITHUB_TOKEN=your_github_token
-StayOrGo go
+stay_or_go go
 ```
 
 ### Custom Parameter File with -c Option
@@ -98,4 +98,4 @@ This project is licensed under the MIT License.
 
 ## Reporting Issues
 
-If you encounter any issues, please report them on [GitHub Issues](https://github.com/uzumaki-inc/StayOrGo/issues).
+If you encounter any issues, please report them on [GitHub Issues](https://github.com/uzumaki-inc/stay_or_go/issues).

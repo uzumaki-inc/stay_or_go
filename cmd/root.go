@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/uzumaki-inc/StayOrGo/analyzer"
-	"github.com/uzumaki-inc/StayOrGo/parser"
-	"github.com/uzumaki-inc/StayOrGo/presenter"
-	"github.com/uzumaki-inc/StayOrGo/utils"
+	"github.com/uzumaki-inc/stay_or_go/analyzer"
+	"github.com/uzumaki-inc/stay_or_go/parser"
+	"github.com/uzumaki-inc/stay_or_go/presenter"
+	"github.com/uzumaki-inc/stay_or_go/utils"
 )
 
 // var greeting string
@@ -35,10 +35,10 @@ var (
 //
 //nolint:exhaustruct, lll
 var rootCmd = &cobra.Command{
-	Use:     "StayOrGo",
+	Use:     "stay_or_go",
 	Version: "0.1.1",
 	Short:   "Analyze and score your Go and Ruby dependencies for popularity and maintenance",
-	Long: `StayOrGo scans your Go (go.mod) and Ruby (Gemfile) dependency files to evaluate each library's popularity and maintenance status.
+	Long: `stay_or_go scans your Go (go.mod) and Ruby (Gemfile) dependency files to evaluate each library's popularity and maintenance status.
 It generates scores to help you decide whether to keep (‘Stay’) or replace (‘Go’) your dependencies.
 Output the results in Markdown, CSV, or TSV formats.`,
 	Run: func(_ *cobra.Command, args []string) {

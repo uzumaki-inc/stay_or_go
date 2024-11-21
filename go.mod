@@ -1,4 +1,4 @@
-module github.com/uzumaki-inc/StayOrGo
+module github.com/uzumaki-inc/stay_or_go
 
 go 1.23.2
 
