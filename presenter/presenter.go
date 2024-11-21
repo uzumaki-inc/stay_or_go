@@ -5,9 +5,9 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/uzumaki-inc/StayOrGo/analyzer"
-	"github.com/uzumaki-inc/StayOrGo/parser"
-	"github.com/uzumaki-inc/StayOrGo/utils"
+	"github.com/uzumaki-inc/stay_or_go/analyzer"
+	"github.com/uzumaki-inc/stay_or_go/parser"
+	"github.com/uzumaki-inc/stay_or_go/utils"
 )
 
 type AnalyzedLibInfo struct {

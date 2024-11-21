@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/uzumaki-inc/StayOrGo/analyzer"
-	"github.com/uzumaki-inc/StayOrGo/parser"
-	"github.com/uzumaki-inc/StayOrGo/presenter"
+	"github.com/uzumaki-inc/stay_or_go/analyzer"
+	"github.com/uzumaki-inc/stay_or_go/parser"
+	"github.com/uzumaki-inc/stay_or_go/presenter"
 )
 
 // Disable parallel testing to test standard output

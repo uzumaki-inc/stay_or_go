@@ -5,7 +5,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
-	"github.com/uzumaki-inc/StayOrGo/analyzer"
+	"github.com/uzumaki-inc/stay_or_go/analyzer"
 )
 
 func TestFetchGithubInfo(t *testing.T) {

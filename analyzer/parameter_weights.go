@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/viper"
-	"github.com/uzumaki-inc/StayOrGo/utils"
+	"github.com/uzumaki-inc/stay_or_go/utils"
 )
 
 const (
