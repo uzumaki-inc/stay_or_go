@@ -36,7 +36,7 @@ var (
 //nolint:exhaustruct, lll
 var rootCmd = &cobra.Command{
 	Use:     "StayOrGo",
-	Version: "0.1.0",
+	Version: "0.1.1",
 	Short:   "Analyze and score your Go and Ruby dependencies for popularity and maintenance",
 	Long: `StayOrGo scans your Go (go.mod) and Ruby (Gemfile) dependency files to evaluate each library's popularity and maintenance status.
 It generates scores to help you decide whether to keep (‘Stay’) or replace (‘Go’) your dependencies.
