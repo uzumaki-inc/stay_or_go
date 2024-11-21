@@ -36,7 +36,7 @@ var (
 //nolint:exhaustruct, lll
 var rootCmd = &cobra.Command{
 	Use:     "stay_or_go",
-	Version: "0.1.1",
+	Version: "0.1.2",
 	Short:   "Analyze and score your Go and Ruby dependencies for popularity and maintenance",
 	Long: `stay_or_go scans your Go (go.mod) and Ruby (Gemfile) dependency files to evaluate each library's popularity and maintenance status.
 It generates scores to help you decide whether to keep (‘Stay’) or replace (‘Go’) your dependencies.
