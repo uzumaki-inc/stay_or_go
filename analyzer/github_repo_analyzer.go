@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/konyu/StayOrGo/utils"
+	"github.com/uzumaki-inc/StayOrGo/utils"
 )
 
 var (

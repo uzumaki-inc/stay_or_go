@@ -13,7 +13,7 @@ StayOrGo is a CLI tool that analyzes Go and Ruby dependencies to evaluate their 
 To install this tool, you need a Go environment. Use the following command to install:
 
 ```bash
-go install github.com/konyu/StayOrGo@latest
+go install github.com/uzumaki-inc/StayOrGo@latest
 ```
 
 ## Usage
@@ -94,7 +94,7 @@ This project is licensed under the MIT License.
 
 ## Contributors
 
-- [konyu](https://github.com/konyu)
+- [uzumaki-inc](https://github.com/uzumaki-inc)
 
 ## Reporting Issues
 

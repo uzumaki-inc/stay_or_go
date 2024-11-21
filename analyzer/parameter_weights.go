@@ -3,8 +3,8 @@ package analyzer
 import (
 	"os"
 
-	"github.com/konyu/StayOrGo/utils"
 	"github.com/spf13/viper"
+	"github.com/uzumaki-inc/StayOrGo/utils"
 )
 
 const (

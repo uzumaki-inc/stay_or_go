@@ -5,11 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/konyu/StayOrGo/analyzer"
-	"github.com/konyu/StayOrGo/parser"
-	"github.com/konyu/StayOrGo/presenter"
-	"github.com/konyu/StayOrGo/utils"
 	"github.com/spf13/cobra"
+	"github.com/uzumaki-inc/StayOrGo/analyzer"
+	"github.com/uzumaki-inc/StayOrGo/parser"
+	"github.com/uzumaki-inc/StayOrGo/presenter"
+	"github.com/uzumaki-inc/StayOrGo/utils"
 )
 
 // var greeting string

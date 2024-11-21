@@ -1,4 +1,4 @@
-module github.com/konyu/StayOrGo
+module github.com/uzumaki-inc/StayOrGo
 
 go 1.23.2
 

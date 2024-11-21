@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/konyu/StayOrGo/analyzer"
-	"github.com/konyu/StayOrGo/parser"
-	"github.com/konyu/StayOrGo/presenter"
 	"github.com/stretchr/testify/assert"
+	"github.com/uzumaki-inc/StayOrGo/analyzer"
+	"github.com/uzumaki-inc/StayOrGo/parser"
+	"github.com/uzumaki-inc/StayOrGo/presenter"
 )
 
 // Disable parallel testing to test standard output

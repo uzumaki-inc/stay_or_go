@@ -1,11 +1,11 @@
 /*
-Copyright © 2024 @konyu(github name)
+Copyright © 2024 @konyu
 */
 package main
 
 import (
 	"github.com/joho/godotenv"
-	"github.com/konyu/StayOrGo/cmd"
+	"github.com/uzumaki-inc/StayOrGo/cmd"
 )
 
 func main() {
