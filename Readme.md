@@ -2,6 +2,9 @@
 
 stay_or_go is a CLI tool that analyzes Go and Ruby dependencies to evaluate their popularity and maintenance status. This tool generates scores to help you decide whether to "Stay" with or "Go" from your dependencies. Results can be output in Markdown, CSV, or TSV formats.
 
+![Demo](https://github.com/user-attachments/assets/cbb4c138-fee0-47bc-ae61-afb21897a577)
+![Demo on Youtube](https://www.youtube.com/watch?v=qxMEraHYnmM)
+
 ## Features
 
 - Scans Go (`go.mod`) and Ruby (`Gemfile`) dependency files
