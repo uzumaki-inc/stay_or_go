@@ -206,7 +206,8 @@ func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) {
 		utils.StdErrorPrintln("Date Format Error: %v", err)
 	}
 
-	score := float64(repoInfo.Stars) * weights.Stars
+	score := float64(repoInfo.Watchers) * weights.Watchers
+	score += float64(repoInfo.Stars) * weights.Stars
 	score += float64(repoInfo.Forks) * weights.Forks
 	score += float64(repoInfo.OpenIssues) * weights.OpenIssues
 	score += float64(days) * weights.LastCommitDate
