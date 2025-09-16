@@ -35,8 +35,8 @@ func TestPresenters_WithSkippedLibInfoAndMissingRepoInfo(t *testing.T) {
 			presenterFunc: func(infos []presenter.AnalyzedLibInfo) presenter.Presenter {
 				return presenter.NewMarkdownPresenter(infos)
 			},
-            //nolint:dupword
-            expectedOutput: `| Name | RepositoryURL | Watchers | Stars | Forks | OpenIssues | LastCommitDate | Archived | Score | Skip | SkipReason |
+			//nolint:dupword
+			expectedOutput: `| Name | RepositoryURL | Watchers | Stars | Forks | OpenIssues | LastCommitDate | Archived | Score | Skip | SkipReason |
 | ---- | ------------- | -------- | ----- | ----- | ---------- | -------------- | -------- | ----- | ---- | ---------- |
 |libX|N/A|N/A|N/A|N/A|N/A|N/A|N/A|N/A|true|Not hosted on Github|
 `,
@@ -46,8 +46,8 @@ func TestPresenters_WithSkippedLibInfoAndMissingRepoInfo(t *testing.T) {
 			presenterFunc: func(infos []presenter.AnalyzedLibInfo) presenter.Presenter {
 				return presenter.NewCsvPresenter(infos)
 			},
-            //nolint:dupword
-            expectedOutput: "Name, RepositoryURL, Watchers, Stars, Forks, OpenIssues, LastCommitDate, Archived, Score, Skip, SkipReason\nlibX, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, true, Not hosted on Github\n",
+			//nolint:dupword
+			expectedOutput: "Name, RepositoryURL, Watchers, Stars, Forks, OpenIssues, LastCommitDate, Archived, Score, Skip, SkipReason\nlibX, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, true, Not hosted on Github\n",
 		},
 		{
 			name: "TSV",
@@ -58,8 +58,8 @@ func TestPresenters_WithSkippedLibInfoAndMissingRepoInfo(t *testing.T) {
 		},
 	}
 
-    for _, tc := range cases {
-        t.Run(tc.name, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			// capture stdout
 			r, w, _ := os.Pipe()
 			old := os.Stdout

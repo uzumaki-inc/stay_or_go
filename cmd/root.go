@@ -1,21 +1,21 @@
 package cmd
 
 import (
-    "errors"
-    "fmt"
-    "os"
-    "strings"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
 
-    "github.com/spf13/cobra"
-    "github.com/uzumaki-inc/stay_or_go/analyzer"
-    "github.com/uzumaki-inc/stay_or_go/parser"
-    "github.com/uzumaki-inc/stay_or_go/presenter"
-    "github.com/uzumaki-inc/stay_or_go/utils"
+	"github.com/spf13/cobra"
+	"github.com/uzumaki-inc/stay_or_go/analyzer"
+	"github.com/uzumaki-inc/stay_or_go/parser"
+	"github.com/uzumaki-inc/stay_or_go/presenter"
+	"github.com/uzumaki-inc/stay_or_go/utils"
 )
 
 // var greeting string
 var (
-    filePath       string
+	filePath       string
 	outputFormat   string
 	githubToken    string
 	configFilePath string
@@ -25,15 +25,15 @@ var (
 		"ruby": "Gemfile",
 		"go":   "go.mod",
 	}
-    supportedOutputFormats = map[string]bool{
-        "csv":      true,
-        "tsv":      true,
-        "markdown": true,
-    }
+	supportedOutputFormats = map[string]bool{
+		"csv":      true,
+		"tsv":      true,
+		"markdown": true,
+	}
 
-    // Sentinel errors for wrapping
-    ErrUnsupportedFormat  = errors.New("unsupported format")
-    ErrMissingGithubToken = errors.New("missing github token")
+	// Sentinel errors for wrapping
+	ErrUnsupportedFormat  = errors.New("unsupported format")
+	ErrMissingGithubToken = errors.New("missing github token")
 )
 
 // AnalyzerPort is a minimal adapter for analyzer used by cmd to enable testing with stubs.
@@ -100,95 +100,94 @@ func isSupportedLanguage(language string) bool {
 
 // run executes the core logic with injectable dependencies. Returns error instead of exiting.
 //
-//nolint:funlen,cyclop // readability is prioritized; refactor would add indirection without clear benefit
+//nolint:funlen,cyclop,wsl // readability is prioritized; wsl rules would reduce clarity here
 func run(language, inFile, format, token, config string, _ bool, deps Deps) error {
+	if !isSupportedLanguage(language) {
+		utils.StdErrorPrintln("Error: Unsupported language: %s. Supported languages are: %s\n",
+			language, strings.Join(supportedLanguages, ", "))
 
-    if !isSupportedLanguage(language) {
-        utils.StdErrorPrintln("Error: Unsupported language: %s. Supported languages are: %s\n",
-            language, strings.Join(supportedLanguages, ", "))
+		return fmt.Errorf("%w: %s", parser.ErrUnsupportedLanguage, language)
+	}
 
-        return fmt.Errorf("%w: %s", parser.ErrUnsupportedLanguage, language)
-    }
+	file := inFile
+	if file == "" {
+		file = languageConfigMap[language]
+	}
 
-    file := inFile
-    if file == "" {
-        file = languageConfigMap[language]
-    }
+	if !supportedOutputFormats[format] {
+		var keys []string
+		for key := range supportedOutputFormats {
+			keys = append(keys, key)
+		}
+		utils.StdErrorPrintln("Error: Unsupported output format: %s. Supported output formats are: %s\n",
+			format, strings.Join(keys, ", "))
 
-    if !supportedOutputFormats[format] {
-        var keys []string
-        for key := range supportedOutputFormats {
-            keys = append(keys, key)
-        }
-        utils.StdErrorPrintln("Error: Unsupported output format: %s. Supported output formats are: %s\n",
-            format, strings.Join(keys, ", "))
+		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, format)
+	}
 
-        return fmt.Errorf("%w: %s", ErrUnsupportedFormat, format)
-    }
+	if token == "" {
+		token = os.Getenv("GITHUB_TOKEN")
+		if token == "" {
+			//nolint:lll // error message kept in one line for clarity when printed
+			fmt.Fprintln(os.Stderr, "Please provide a GitHub token using the --github-token flag or set the GITHUB_TOKEN environment variable")
 
-    if token == "" {
-        token = os.Getenv("GITHUB_TOKEN")
-        if token == "" {
-            //nolint:lll // error message kept in one line for clarity when printed
-            fmt.Fprintln(os.Stderr, "Please provide a GitHub token using the --github-token flag or set the GITHUB_TOKEN environment variable")
+			return fmt.Errorf("%w", ErrMissingGithubToken)
+		}
+	}
 
-            return fmt.Errorf("%w", ErrMissingGithubToken)
-        }
-    }
+	utils.DebugPrintln("Selected Language: " + language)
+	utils.DebugPrintln("Reading file: " + file)
+	utils.DebugPrintln("Output format: " + format)
 
-    utils.DebugPrintln("Selected Language: " + language)
-    utils.DebugPrintln("Reading file: " + file)
-    utils.DebugPrintln("Output format: " + format)
+	var weights analyzer.ParameterWeights
+	if config != "" {
+		utils.DebugPrintln("Config file: " + config)
+		weights = analyzer.NewParameterWeightsFromConfiFile(config)
+	} else {
+		weights = analyzer.NewParameterWeights()
+	}
+	analyzerSvc := deps.NewAnalyzer(token, weights)
 
-    var weights analyzer.ParameterWeights
-    if config != "" {
-        utils.DebugPrintln("Config file: " + config)
-        weights = analyzer.NewParameterWeightsFromConfiFile(config)
-    } else {
-        weights = analyzer.NewParameterWeights()
-    }
-    analyzerSvc := deps.NewAnalyzer(token, weights)
+	utils.StdErrorPrintln("Selecting language... ")
+	selectedParser, err := deps.SelectParser(language)
+	if err != nil {
+		utils.StdErrorPrintln("Error selecting parser: %v", err)
 
-    utils.StdErrorPrintln("Selecting language... ")
-    selectedParser, err := deps.SelectParser(language)
-    if err != nil {
-        utils.StdErrorPrintln("Error selecting parser: %v", err)
+		return fmt.Errorf("select parser: %w", err)
+	}
+	utils.StdErrorPrintln("Parsing file...")
+	libInfoList, err := selectedParser.Parse(file)
+	if err != nil {
+		utils.StdErrorPrintln("Error parsing file: %v", err)
 
-        return fmt.Errorf("select parser: %w", err)
-    }
-    utils.StdErrorPrintln("Parsing file...")
-    libInfoList, err := selectedParser.Parse(file)
-    if err != nil {
-        utils.StdErrorPrintln("Error parsing file: %v", err)
+		return fmt.Errorf("parse file: %w", err)
+	}
+	utils.StdErrorPrintln("Getting repository URLs...")
+	selectedParser.GetRepositoryURL(libInfoList)
 
-        return fmt.Errorf("parse file: %w", err)
-    }
-    utils.StdErrorPrintln("Getting repository URLs...")
-    selectedParser.GetRepositoryURL(libInfoList)
+	var repoURLs []string
+	for _, info := range libInfoList {
+		if !info.Skip {
+			repoURLs = append(repoURLs, info.RepositoryURL)
+		}
+	}
 
-    var repoURLs []string
-    for _, info := range libInfoList {
-        if !info.Skip {
-            repoURLs = append(repoURLs, info.RepositoryURL)
-        }
-    }
+	utils.StdErrorPrintln("Analyzing libraries with Github...")
+	var gitHubRepoInfos []analyzer.GitHubRepoInfo
+	if len(repoURLs) > 0 {
+		gitHubRepoInfos = analyzerSvc.FetchGithubInfo(repoURLs)
+	} else {
+		gitHubRepoInfos = []analyzer.GitHubRepoInfo{}
+	}
 
-    utils.StdErrorPrintln("Analyzing libraries with Github...")
-    var gitHubRepoInfos []analyzer.GitHubRepoInfo
-    if len(repoURLs) > 0 {
-        gitHubRepoInfos = analyzerSvc.FetchGithubInfo(repoURLs)
-    } else {
-        gitHubRepoInfos = []analyzer.GitHubRepoInfo{}
-    }
+	utils.StdErrorPrintln("Making dataset...")
+	analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
+	presenterInst := deps.SelectPresenter(format, analyzedLibInfos)
 
-    utils.StdErrorPrintln("Making dataset...")
-    analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
-    presenterInst := deps.SelectPresenter(format, analyzedLibInfos)
+	utils.StdErrorPrintln("Displaying result...\n")
+	presenterInst.Display()
 
-    utils.StdErrorPrintln("Displaying result...\n")
-    presenterInst.Display()
-
-    return nil
+	return nil
 }
 
 func Execute() {

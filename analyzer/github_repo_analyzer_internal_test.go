@@ -50,9 +50,9 @@ func TestCalcScore_InvalidDate_SetsSkip(t *testing.T) {
 func TestCreateRepoInfo_MapsFields(t *testing.T) {
 	t.Parallel()
 	rd := &RepoData{Name: "r", SubscribersCount: 1, StargazersCount: 2, ForksCount: 3, OpenIssuesCount: 4, Archived: true}
-    gi := createRepoInfo(rd, "2024-01-01T00:00:00Z")
-    //nolint:lll // consolidate field checks for clarity
-    if gi.RepositoryName != "r" || gi.Watchers != 1 || gi.Stars != 2 || gi.Forks != 3 || gi.OpenIssues != 4 || gi.Archived != true || gi.LastCommitDate != "2024-01-01T00:00:00Z" {
+	gi := createRepoInfo(rd, "2024-01-01T00:00:00Z")
+	if gi.RepositoryName != "r" || gi.Watchers != 1 || gi.Stars != 2 || gi.Forks != 3 || gi.OpenIssues != 4 ||
+		gi.Archived != true || gi.LastCommitDate != "2024-01-01T00:00:00Z" {
 		t.Fatalf("unexpected mapping: %+v", gi)
 	}
 }

@@ -1,19 +1,17 @@
 package presenter_test
 
-//nolint:gci // keep grouped imports for test readability
 import (
-    "bytes"
-    "os"
-    "testing"
+	"bytes"
+	"os"
+	"testing"
 
-    "github.com/stretchr/testify/assert"
-    "github.com/uzumaki-inc/stay_or_go/analyzer"
-    "github.com/uzumaki-inc/stay_or_go/parser"
-    "github.com/uzumaki-inc/stay_or_go/presenter"
+	"github.com/stretchr/testify/assert"
+	"github.com/uzumaki-inc/stay_or_go/analyzer"
+	"github.com/uzumaki-inc/stay_or_go/parser"
+	"github.com/uzumaki-inc/stay_or_go/presenter"
 )
 
 // Disable parallel testing to test standard output
-//
 func TestDisplay(t *testing.T) {
 	// Avoid running in parallel since this test manipulates os.Stdout
 
@@ -29,11 +27,10 @@ func TestDisplay(t *testing.T) {
 			},
 
 			//nolint:lll
-			expectedOutput: `| Name | RepositoryURL | Watchers | Stars | Forks | OpenIssues | LastCommitDate | Archived | Score | Skip | SkipReason |
-| ---- | ------------- | -------- | ----- | ----- | ---------- | -------------- | -------- | ----- | ---- | ---------- |
-|lib1|https://github.com/lib1|100|200|50|10|2023-10-10|false|85|false|N/A|
-|lib2|https://github.com/lib2|150|250|60|15|2023-10-11|false|90|false|N/A|
-`,
+			expectedOutput: "| Name | RepositoryURL | Watchers | Stars | Forks | OpenIssues | LastCommitDate | Archived | Score | Skip | SkipReason |\n" +
+				"| ---- | ------------- | -------- | ----- | ----- | ---------- | -------------- | -------- | ----- | ---- | ---------- |\n" +
+				"|lib1|https://github.com/lib1|100|200|50|10|2023-10-10|false|85|false|N/A|\n" +
+				"|lib2|https://github.com/lib2|150|250|60|15|2023-10-11|false|90|false|N/A|\n",
 		},
 		{
 			name: "TSV Presenter",
@@ -41,7 +38,9 @@ func TestDisplay(t *testing.T) {
 				return presenter.NewTsvPresenter(analyzedLibInfos)
 			},
 			//nolint:lll
-			expectedOutput: "Name\tRepositoryURL\tWatchers\tStars\tForks\tOpenIssues\tLastCommitDate\tArchived\tScore\tSkip\tSkipReason\nlib1\thttps://github.com/lib1\t100\t200\t50\t10\t2023-10-10\tfalse\t85\tfalse\tN/A\nlib2\thttps://github.com/lib2\t150\t250\t60\t15\t2023-10-11\tfalse\t90\tfalse\tN/A\n",
+			expectedOutput: "Name\tRepositoryURL\tWatchers\tStars\tForks\tOpenIssues\tLastCommitDate\tArchived\tScore\tSkip\tSkipReason\n" +
+				"lib1\thttps://github.com/lib1\t100\t200\t50\t10\t2023-10-10\tfalse\t85\tfalse\tN/A\n" +
+				"lib2\thttps://github.com/lib2\t150\t250\t60\t15\t2023-10-11\tfalse\t90\tfalse\tN/A\n",
 		},
 		{
 			name: "CSV Presenter",
@@ -49,7 +48,9 @@ func TestDisplay(t *testing.T) {
 				return presenter.NewCsvPresenter(analyzedLibInfos)
 			},
 			//nolint:lll
-			expectedOutput: "Name, RepositoryURL, Watchers, Stars, Forks, OpenIssues, LastCommitDate, Archived, Score, Skip, SkipReason\nlib1, https://github.com/lib1, 100, 200, 50, 10, 2023-10-10, false, 85, false, N/A\nlib2, https://github.com/lib2, 150, 250, 60, 15, 2023-10-11, false, 90, false, N/A\n",
+			expectedOutput: "Name, RepositoryURL, Watchers, Stars, Forks, OpenIssues, LastCommitDate, Archived, Score, Skip, SkipReason\n" +
+				"lib1, https://github.com/lib1, 100, 200, 50, 10, 2023-10-10, false, 85, false, N/A\n" +
+				"lib2, https://github.com/lib2, 150, 250, 60, 15, 2023-10-11, false, 90, false, N/A\n",
 		},
 	}
 

@@ -24,15 +24,15 @@ func TestRootCommand_ErrorScenarios(t *testing.T) {
 		{name: "missing token", scenario: "NOTOKEN", expect: "Please provide a GitHub token"},
 	}
 
-    for _, tc := range cases {
-        t.Run(tc.name, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			dir := t.TempDir()
 			capPath := filepath.Join(dir, "stderr.txt")
 
-            //nolint:gosec // launching test subprocess intentionally
-            cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_CobraRoot")
+			//nolint:gosec // launching test subprocess intentionally
+			cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_CobraRoot")
 			cmd.Env = append(os.Environ(),
 				"GO_WANT_HELPER_PROCESS_COBRA=1",
 				"COBRA_SCENARIO="+tc.scenario,
@@ -142,15 +142,15 @@ func TestRootCommand_DefaultInputsAndVerbose(t *testing.T) {
 		{name: "go with config file", scenario: "GO_CONFIG", expectErr: false},
 	}
 
-    for _, tc := range cases {
-        t.Run(tc.name, func(t *testing.T) {
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			dir := t.TempDir()
 			capPath := filepath.Join(dir, "stderr.txt")
 
-            //nolint:gosec // launching test subprocess intentionally
-            cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_CobraRoot")
+			//nolint:gosec // launching test subprocess intentionally
+			cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_CobraRoot")
 			cmd.Env = append(os.Environ(),
 				"GO_WANT_HELPER_PROCESS_COBRA=1",
 				"COBRA_SCENARIO="+tc.scenario,

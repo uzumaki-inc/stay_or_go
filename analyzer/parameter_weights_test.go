@@ -1,4 +1,4 @@
-package analyzer
+package analyzer_test
 
 import (
 	"os"
@@ -7,19 +7,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/uzumaki-inc/stay_or_go/analyzer"
 )
 
 func TestNewParameterWeightsDefaults(t *testing.T) {
 	t.Parallel()
 
-	w := NewParameterWeights()
+	w := analyzer.NewParameterWeights()
 
-	assert.InDelta(t, float64(defaultWatcherWeight), w.Watchers, 0.0001)
-	assert.InDelta(t, float64(defaultStarWeight), w.Stars, 0.0001)
-	assert.InDelta(t, float64(defaultForkWeight), w.Forks, 0.0001)
-	assert.InDelta(t, float64(defaultOpenIssueWeight), w.OpenIssues, 0.0001)
-	assert.InDelta(t, float64(defaultLastCommitDateWeight), w.LastCommitDate, 0.0001)
-	assert.InDelta(t, float64(defaultArchivedWeight), w.Archived, 0.0001)
+	// Default weights should match implementation defaults
+	assert.InDelta(t, 0.1, w.Watchers, 0.0001)
+	assert.InDelta(t, 0.1, w.Stars, 0.0001)
+	assert.InDelta(t, 0.1, w.Forks, 0.0001)
+	assert.InDelta(t, 0.01, w.OpenIssues, 0.0001)
+	assert.InDelta(t, -0.05, w.LastCommitDate, 0.0001)
+	assert.InDelta(t, -1000000.0, w.Archived, 0.1)
 }
 
 func TestNewParameterWeightsFromConfiFile_LoadsValues(t *testing.T) {
@@ -39,7 +41,7 @@ func TestNewParameterWeightsFromConfiFile_LoadsValues(t *testing.T) {
 		t.Fatalf("failed to write temp config: %v", err)
 	}
 
-	w := NewParameterWeightsFromConfiFile(path)
+	w := analyzer.NewParameterWeightsFromConfiFile(path)
 
 	assert.InDelta(t, 1.5, w.Watchers, 0.0001)
 	assert.InDelta(t, 2.5, w.Stars, 0.0001)
@@ -53,8 +55,8 @@ func TestNewParameterWeightsFromConfiFile_LoadsValues(t *testing.T) {
 func TestNewParameterWeightsFromConfiFile_ExitOnMissing(t *testing.T) {
 	t.Parallel()
 
-    //nolint:gosec // launching test subprocess intentionally
-    cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_WeightsExit")
+	//nolint:gosec // launching test subprocess intentionally
+	cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_WeightsExit")
 	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS_WEIGHTS=1")
 
 	err := cmd.Run()
@@ -76,6 +78,6 @@ func TestHelperProcess_WeightsExit(t *testing.T) {
 		return
 	}
 	// This should trigger os.Exit(1) internally
-	_ = NewParameterWeightsFromConfiFile("/path/does/not/exist.yml")
+	_ = analyzer.NewParameterWeightsFromConfiFile("/path/does/not/exist.yml")
 	t.Fatalf("should have exited before reaching here")
 }

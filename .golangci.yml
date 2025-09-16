@@ -36,9 +36,6 @@ issues:
     - path: _test.go
       linters:
         - cyclop
-        - gci
-        - goimports
-        - gofmt
         - gofumpt
         - lll
         - wsl
@@ -54,14 +51,7 @@ issues:
         - gosec
         - nlreturn
         - nolintlint
-    # Temporarily relax style linters for cmd/root.go (Option A). Revertable for Option B.
-    - path: cmd/root.go
+    # Temporary exception: gci noisy for this single file after package move
+    - path: analyzer/parameter_weights_test.go
       linters:
-        - gofmt
-        - goimports
         - gci
-        - gofumpt
-        - whitespace
-        - wsl
-        - nlreturn
-        - varnamelen

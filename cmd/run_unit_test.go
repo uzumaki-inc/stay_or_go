@@ -40,15 +40,15 @@ func TestRun_Success_Go_DefaultFile(t *testing.T) {
 	sa := &stubAnalyzer{}
 	rp := &recorderPresenter{}
 
-    deps := Deps{
-        NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return sa },
-        SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
-        SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
-    }
+	deps := Deps{
+		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return sa },
+		SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
+		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+	}
 
 	// Unset env to ensure token from argument is used
 	_ = os.Unsetenv("GITHUB_TOKEN")
-    if err := run("go", "", "markdown", "tok", "", false, deps); err != nil { //nolint:lll
+	if err := run("go", "", "markdown", "tok", "", false, deps); err != nil { //nolint:lll
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if ra.lastFile != "go.mod" {
@@ -68,11 +68,11 @@ func TestRun_Success_Ruby_DefaultFile(t *testing.T) {
 	sa := &stubAnalyzer{}
 	rp := &recorderPresenter{}
 
-    deps := Deps{
-        NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return sa },
-        SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
-        SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
-    }
+	deps := Deps{
+		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return sa },
+		SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
+		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+	}
 	_ = os.Unsetenv("GITHUB_TOKEN")
 	if err := run("ruby", "", "markdown", "tok", "", false, deps); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -88,16 +88,16 @@ func TestRun_SkipAll_DoesNotCallAnalyzer(t *testing.T) {
 	called := false
 	rp := &recorderPresenter{}
 
-    deps := Deps{
-        NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{called: true} },
-        SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
-        SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
-    }
+	deps := Deps{
+		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{called: true} },
+		SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
+		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+	}
 
 	// Wrap NewAnalyzer to detect if it's used later via FetchGithubInfo
-    deps.NewAnalyzer = func(_ string, _ analyzer.ParameterWeights) AnalyzerPort {
-        return AnalyzerPort(rtFuncAnalyzer(func(_ []string) []analyzer.GitHubRepoInfo { called = true; return nil }))
-    }
+	deps.NewAnalyzer = func(_ string, _ analyzer.ParameterWeights) AnalyzerPort {
+		return AnalyzerPort(rtFuncAnalyzer(func(_ []string) []analyzer.GitHubRepoInfo { called = true; return nil }))
+	}
 
 	_ = os.Unsetenv("GITHUB_TOKEN")
 	if err := run("go", "", "markdown", "tok", "", false, deps); err != nil {
@@ -143,11 +143,11 @@ func TestRun_WithConfigFileBranch(t *testing.T) {
 	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
 	rp := &recorderPresenter{}
 
-    deps := Deps{
-        NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{} },
-        SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
-        SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
-    }
+	deps := Deps{
+		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{} },
+		SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
+		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+	}
 	_ = os.Unsetenv("GITHUB_TOKEN")
 	if err := run("go", "", "markdown", "tok", cfg, false, deps); err != nil {
 		t.Fatalf("unexpected: %v", err)

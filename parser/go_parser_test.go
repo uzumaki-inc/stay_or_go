@@ -1,13 +1,12 @@
 package parser_test
 
-//nolint:gci // keep imports grouped for test readability
 import (
-    "os"
-    "testing"
+	"os"
+	"testing"
 
-    "github.com/jarcoal/httpmock"
-    "github.com/stretchr/testify/assert"
-    "github.com/uzumaki-inc/stay_or_go/parser"
+	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/assert"
+	"github.com/uzumaki-inc/stay_or_go/parser"
 )
 
 func TestGoParser_Parse_RequireReplaceAndIndirect(t *testing.T) {
@@ -80,32 +79,34 @@ replace (
 }
 
 func TestGoParser_GetRepositoryURL_SetsURLAndSkips(t *testing.T) {
-    // Prepare initial lib list as if parsed
-    libs := []parser.LibInfo{
-        parser.NewLibInfo("libone", parser.WithOthers([]string{"github.com/user/libone", "v1.2.3"})),
-        parser.NewLibInfo("libtwo", parser.WithOthers([]string{"github.com/user/libtwo", "v0.9.0"})),
-        parser.NewLibInfo("sdk", parser.WithOthers([]string{"code.gitea.io/sdk", "v1.0.0"})),
-        parser.NewLibInfo("mod", parser.WithSkip(true), parser.WithSkipReason("replaced module")),
-    }
+	// Prepare initial lib list as if parsed
+	libs := []parser.LibInfo{
+		parser.NewLibInfo("libone", parser.WithOthers([]string{"github.com/user/libone", "v1.2.3"})),
+		parser.NewLibInfo("libtwo", parser.WithOthers([]string{"github.com/user/libtwo", "v0.9.0"})),
+		parser.NewLibInfo("sdk", parser.WithOthers([]string{"code.gitea.io/sdk", "v1.0.0"})),
+		parser.NewLibInfo("mod", parser.WithSkip(true), parser.WithSkipReason("replaced module")),
+	}
 
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	// Success: libone -> explicit GitHub URL in origin
-    //nolint:lll
-    httpmock.RegisterResponder(
-        "GET",
-        "https://proxy.golang.org/github.com/user/libone/@v/v1.2.3.info",
-        httpmock.NewStringResponder(200, `{"version":"v1.2.3","time":"2024-01-01T00:00:00Z","origin":{"vcs":"git","url":"https://github.com/user/libone","ref":"main","hash":"deadbeef"}}`), //nolint:lll
-    )
+	httpmock.RegisterResponder(
+		"GET",
+		"https://proxy.golang.org/github.com/user/libone/@v/v1.2.3.info",
+		httpmock.NewStringResponder(200,
+			`{"version":"v1.2.3","time":"2024-01-01T00:00:00Z",`+
+				`"origin":{"vcs":"git","url":"https://github.com/user/libone","ref":"main","hash":"deadbeef"}}`),
+	)
 
 	// Success via fallback: libtwo -> origin.url empty but module path contains github.com
-    //nolint:lll
-    httpmock.RegisterResponder(
-        "GET",
-        "https://proxy.golang.org/github.com/user/libtwo/@v/v0.9.0.info",
-        httpmock.NewStringResponder(200, `{"version":"v0.9.0","time":"2024-01-02T00:00:00Z","origin":{"vcs":"git","url":"","ref":"main","hash":"deadbeef"}}`), //nolint:lll
-    )
+	httpmock.RegisterResponder(
+		"GET",
+		"https://proxy.golang.org/github.com/user/libtwo/@v/v0.9.0.info",
+		httpmock.NewStringResponder(200,
+			`{"version":"v0.9.0","time":"2024-01-02T00:00:00Z",`+
+				`"origin":{"vcs":"git","url":"","ref":"main","hash":"deadbeef"}}`),
+	)
 
 	// Non-GitHub or error -> mark skip
 	httpmock.RegisterResponder(
