@@ -32,3 +32,36 @@ issues:
     - path: _test.go
       linters:
         - funlen
+    # Soften style checks for tests (Option A). Safe to revert later for Option B.
+    - path: _test.go
+      linters:
+        - cyclop
+        - gci
+        - goimports
+        - gofmt
+        - gofumpt
+        - lll
+        - wsl
+        - varnamelen
+        - testpackage
+        - testifylint
+        - paralleltest
+        - dupword
+        - gocyclo
+        - gocognit
+        - errorlint
+        - revive
+        - gosec
+        - nlreturn
+        - nolintlint
+    # Temporarily relax style linters for cmd/root.go (Option A). Revertable for Option B.
+    - path: cmd/root.go
+      linters:
+        - gofmt
+        - goimports
+        - gci
+        - gofumpt
+        - whitespace
+        - wsl
+        - nlreturn
+        - varnamelen

@@ -1,21 +1,21 @@
 package presenter_test
 
+//nolint:gci // keep grouped imports for test readability
 import (
-	"bytes"
-	"os"
-	"testing"
+    "bytes"
+    "os"
+    "testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/uzumaki-inc/stay_or_go/analyzer"
-	"github.com/uzumaki-inc/stay_or_go/parser"
-	"github.com/uzumaki-inc/stay_or_go/presenter"
+    "github.com/stretchr/testify/assert"
+    "github.com/uzumaki-inc/stay_or_go/analyzer"
+    "github.com/uzumaki-inc/stay_or_go/parser"
+    "github.com/uzumaki-inc/stay_or_go/presenter"
 )
 
 // Disable parallel testing to test standard output
 //
-//nolint:tparallel
 func TestDisplay(t *testing.T) {
-    // Avoid running in parallel since this test manipulates os.Stdout
+	// Avoid running in parallel since this test manipulates os.Stdout
 
 	testCases := []struct {
 		name           string

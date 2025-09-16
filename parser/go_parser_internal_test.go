@@ -1,27 +1,27 @@
 package parser
 
 import (
+    "errors"
     "testing"
 )
 
 func TestExtractRepoURL_Errors(t *testing.T) {
-    t.Parallel()
+	t.Parallel()
 
-    // invalid JSON
-    if _, err := extractRepoURL([]byte("not-json"), "github.com/user/lib"); err == nil || err != ErrFailedToUnmarshalJSON {
+	// invalid JSON
+    if _, err := extractRepoURL([]byte("not-json"), "github.com/user/lib"); err == nil || !errors.Is(err, ErrFailedToUnmarshalJSON) {
         t.Fatalf("expected ErrFailedToUnmarshalJSON, got %v", err)
     }
 
-    // no github in name and empty origin.url
-    body := []byte(`{"origin":{"url":""}}`)
-    if _, err := extractRepoURL(body, "code.gitea.io/sdk"); err == nil || err != ErrNotAGitHubRepository {
+	// no github in name and empty origin.url
+	body := []byte(`{"origin":{"url":""}}`)
+    if _, err := extractRepoURL(body, "code.gitea.io/sdk"); err == nil || !errors.Is(err, ErrNotAGitHubRepository) {
         t.Fatalf("expected ErrNotAGitHubRepository, got %v", err)
     }
 
-    // non-github URL in origin
-    body2 := []byte(`{"origin":{"url":"https://example.com/foo"}}`)
-    if _, err := extractRepoURL(body2, "example.com/foo"); err == nil || err != ErrNotAGitHubRepository {
+	// non-github URL in origin
+	body2 := []byte(`{"origin":{"url":"https://example.com/foo"}}`)
+    if _, err := extractRepoURL(body2, "example.com/foo"); err == nil || !errors.Is(err, ErrNotAGitHubRepository) {
         t.Fatalf("expected ErrNotAGitHubRepository, got %v", err)
     }
 }
-

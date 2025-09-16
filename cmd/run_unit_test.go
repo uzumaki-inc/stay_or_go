@@ -1,98 +1,114 @@
 package cmd
 
 import (
-    "os"
-    "path/filepath"
-    "testing"
+	"os"
+	"path/filepath"
+	"testing"
 
-    "github.com/uzumaki-inc/stay_or_go/analyzer"
-    "github.com/uzumaki-inc/stay_or_go/parser"
-    "github.com/uzumaki-inc/stay_or_go/presenter"
+	"github.com/uzumaki-inc/stay_or_go/analyzer"
+	"github.com/uzumaki-inc/stay_or_go/parser"
+	"github.com/uzumaki-inc/stay_or_go/presenter"
 )
 
 // Stubs
 type stubAnalyzer struct{ called bool }
 
 func (s *stubAnalyzer) FetchGithubInfo(_ []string) []analyzer.GitHubRepoInfo {
-    s.called = true
-    return []analyzer.GitHubRepoInfo{{GithubRepoURL: "https://github.com/u/a"}}
+	s.called = true
+	return []analyzer.GitHubRepoInfo{{GithubRepoURL: "https://github.com/u/a"}}
 }
 
-type recorderParser struct{ lastFile string; list []parser.LibInfo }
+type recorderParser struct {
+	lastFile string
+	list     []parser.LibInfo
+}
 
-func (r *recorderParser) Parse(file string) ([]parser.LibInfo, error) { r.lastFile = file; return r.list, nil }
+func (r *recorderParser) Parse(file string) ([]parser.LibInfo, error) {
+	r.lastFile = file
+	return r.list, nil
+}
 func (r *recorderParser) GetRepositoryURL(list []parser.LibInfo) []parser.LibInfo { return list }
 
 type recorderPresenter struct{ displayed bool }
 
-func (r *recorderPresenter) Display()                       { r.displayed = true }
-func (r *recorderPresenter) makeHeader() []string           { return nil }
-func (r *recorderPresenter) makeBody() []string             { return nil }
+func (r *recorderPresenter) Display() { r.displayed = true }
 
 func TestRun_Success_Go_DefaultFile(t *testing.T) {
-    t.Parallel()
-    // Prepare deps
-    ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
-    sa := &stubAnalyzer{}
-    rp := &recorderPresenter{}
+	t.Parallel()
+	// Prepare deps
+	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
+	sa := &stubAnalyzer{}
+	rp := &recorderPresenter{}
 
     deps := Deps{
-        NewAnalyzer: func(token string, weights analyzer.ParameterWeights) AnalyzerPort { return sa },
-        SelectParser: func(language string) (parser.Parser, error) { return ra, nil },
-        SelectPresenter: func(format string, infos []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+        NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return sa },
+        SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
+        SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
     }
 
-    // Unset env to ensure token from argument is used
-    _ = os.Unsetenv("GITHUB_TOKEN")
-    if err := run("go", "", "markdown", "tok", "", false, deps); err != nil {
-        t.Fatalf("unexpected error: %v", err)
-    }
-    if ra.lastFile != "go.mod" { t.Fatalf("expected default go.mod, got %q", ra.lastFile) }
-    if !sa.called { t.Fatalf("expected analyzer called") }
-    if !rp.displayed { t.Fatalf("expected presenter.Display called") }
+	// Unset env to ensure token from argument is used
+	_ = os.Unsetenv("GITHUB_TOKEN")
+    if err := run("go", "", "markdown", "tok", "", false, deps); err != nil { //nolint:lll
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ra.lastFile != "go.mod" {
+		t.Fatalf("expected default go.mod, got %q", ra.lastFile)
+	}
+	if !sa.called {
+		t.Fatalf("expected analyzer called")
+	}
+	if !rp.displayed {
+		t.Fatalf("expected presenter.Display called")
+	}
 }
 
 func TestRun_Success_Ruby_DefaultFile(t *testing.T) {
-    t.Parallel()
-    ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
-    sa := &stubAnalyzer{}
-    rp := &recorderPresenter{}
+	t.Parallel()
+	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
+	sa := &stubAnalyzer{}
+	rp := &recorderPresenter{}
 
     deps := Deps{
-        NewAnalyzer: func(token string, weights analyzer.ParameterWeights) AnalyzerPort { return sa },
-        SelectParser: func(language string) (parser.Parser, error) { return ra, nil },
-        SelectPresenter: func(format string, infos []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+        NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return sa },
+        SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
+        SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
     }
-    _ = os.Unsetenv("GITHUB_TOKEN")
-    if err := run("ruby", "", "markdown", "tok", "", false, deps); err != nil {
-        t.Fatalf("unexpected error: %v", err)
-    }
-    if ra.lastFile != "Gemfile" { t.Fatalf("expected default Gemfile, got %q", ra.lastFile) }
+	_ = os.Unsetenv("GITHUB_TOKEN")
+	if err := run("ruby", "", "markdown", "tok", "", false, deps); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ra.lastFile != "Gemfile" {
+		t.Fatalf("expected default Gemfile, got %q", ra.lastFile)
+	}
 }
 
 func TestRun_SkipAll_DoesNotCallAnalyzer(t *testing.T) {
-    t.Parallel()
-    ra := &recorderParser{list: []parser.LibInfo{{Name: "a", Skip: true, SkipReason: "skip"}}}
-    called := false
-    rp := &recorderPresenter{}
+	t.Parallel()
+	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", Skip: true, SkipReason: "skip"}}}
+	called := false
+	rp := &recorderPresenter{}
 
     deps := Deps{
-        NewAnalyzer: func(token string, weights analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{called: true} },
-        SelectParser: func(language string) (parser.Parser, error) { return ra, nil },
-        SelectPresenter: func(format string, infos []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+        NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{called: true} },
+        SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
+        SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
     }
 
-    // Wrap NewAnalyzer to detect if it's used later via FetchGithubInfo
-    deps.NewAnalyzer = func(token string, weights analyzer.ParameterWeights) AnalyzerPort {
-        return AnalyzerPort(rtFuncAnalyzer(func(urls []string) []analyzer.GitHubRepoInfo { called = true; return nil }))
+	// Wrap NewAnalyzer to detect if it's used later via FetchGithubInfo
+    deps.NewAnalyzer = func(_ string, _ analyzer.ParameterWeights) AnalyzerPort {
+        return AnalyzerPort(rtFuncAnalyzer(func(_ []string) []analyzer.GitHubRepoInfo { called = true; return nil }))
     }
 
-    _ = os.Unsetenv("GITHUB_TOKEN")
-    if err := run("go", "", "markdown", "tok", "", false, deps); err != nil {
-        t.Fatalf("unexpected: %v", err)
-    }
-    if called { t.Fatalf("analyzer should not be called when all skipped") }
-    if !rp.displayed { t.Fatalf("presenter should be called even when skipped") }
+	_ = os.Unsetenv("GITHUB_TOKEN")
+	if err := run("go", "", "markdown", "tok", "", false, deps); err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if called {
+		t.Fatalf("analyzer should not be called when all skipped")
+	}
+	if !rp.displayed {
+		t.Fatalf("presenter should be called even when skipped")
+	}
 }
 
 // Analyzer adapter via function for testing
@@ -101,38 +117,42 @@ type rtFuncAnalyzer func([]string) []analyzer.GitHubRepoInfo
 func (f rtFuncAnalyzer) FetchGithubInfo(urls []string) []analyzer.GitHubRepoInfo { return f(urls) }
 
 func TestRun_UnsupportedAndFormatAndTokenErrors(t *testing.T) {
-    t.Parallel()
-    deps := Deps{}
+	t.Parallel()
+	deps := Deps{}
 
-    if err := run("python", "", "markdown", "tok", "", false, deps); err == nil {
-        t.Fatalf("expected unsupported language error")
-    }
-    if err := run("go", "", "json", "tok", "", false, deps); err == nil {
-        t.Fatalf("expected unsupported format error")
-    }
-    _ = os.Unsetenv("GITHUB_TOKEN")
-    if err := run("go", "", "markdown", "", "", false, deps); err == nil {
-        t.Fatalf("expected missing token error")
-    }
+	if err := run("python", "", "markdown", "tok", "", false, deps); err == nil {
+		t.Fatalf("expected unsupported language error")
+	}
+	if err := run("go", "", "json", "tok", "", false, deps); err == nil {
+		t.Fatalf("expected unsupported format error")
+	}
+	_ = os.Unsetenv("GITHUB_TOKEN")
+	if err := run("go", "", "markdown", "", "", false, deps); err == nil {
+		t.Fatalf("expected missing token error")
+	}
 }
 
 func TestRun_WithConfigFileBranch(t *testing.T) {
-    t.Parallel()
-    dir := t.TempDir()
-    cfg := filepath.Join(dir, "weights.yml")
-    if err := os.WriteFile(cfg, []byte("watchers: 1\n"), 0o600); err != nil { t.Fatal(err) }
+	t.Parallel()
+	dir := t.TempDir()
+	cfg := filepath.Join(dir, "weights.yml")
+	if err := os.WriteFile(cfg, []byte("watchers: 1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 
-    ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
-    rp := &recorderPresenter{}
+	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
+	rp := &recorderPresenter{}
 
     deps := Deps{
-        NewAnalyzer: func(token string, weights analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{} },
-        SelectParser: func(language string) (parser.Parser, error) { return ra, nil },
-        SelectPresenter: func(format string, infos []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+        NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{} },
+        SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
+        SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
     }
-    _ = os.Unsetenv("GITHUB_TOKEN")
-    if err := run("go", "", "markdown", "tok", cfg, false, deps); err != nil {
-        t.Fatalf("unexpected: %v", err)
-    }
-    if !rp.displayed { t.Fatalf("expected presenter called") }
+	_ = os.Unsetenv("GITHUB_TOKEN")
+	if err := run("go", "", "markdown", "tok", cfg, false, deps); err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if !rp.displayed {
+		t.Fatalf("expected presenter called")
+	}
 }

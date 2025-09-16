@@ -1,6 +1,7 @@
 package cmd
 
 import (
+    "errors"
     "fmt"
     "os"
     "strings"
@@ -14,7 +15,7 @@ import (
 
 // var greeting string
 var (
-	filePath       string
+    filePath       string
 	outputFormat   string
 	githubToken    string
 	configFilePath string
@@ -24,38 +25,42 @@ var (
 		"ruby": "Gemfile",
 		"go":   "go.mod",
 	}
-	supportedOutputFormats = map[string]bool{
-		"csv":      true,
-		"tsv":      true,
-		"markdown": true,
-	}
+    supportedOutputFormats = map[string]bool{
+        "csv":      true,
+        "tsv":      true,
+        "markdown": true,
+    }
+
+    // Sentinel errors for wrapping
+    ErrUnsupportedFormat  = errors.New("unsupported format")
+    ErrMissingGithubToken = errors.New("missing github token")
 )
 
 // AnalyzerPort is a minimal adapter for analyzer used by cmd to enable testing with stubs.
 type AnalyzerPort interface {
-    FetchGithubInfo(repositoryUrls []string) []analyzer.GitHubRepoInfo
+	FetchGithubInfo(repositoryUrls []string) []analyzer.GitHubRepoInfo
 }
 
 // PresenterPort narrows the presenter to only what's used here.
 type PresenterPort interface {
-    Display()
+	Display()
 }
 
 // Deps bundles injectable constructors/selectors for testability.
 type Deps struct {
-    NewAnalyzer     func(token string, weights analyzer.ParameterWeights) AnalyzerPort
-    SelectParser    func(language string) (parser.Parser, error)
-    SelectPresenter func(format string, analyzedLibInfos []presenter.AnalyzedLibInfo) PresenterPort
+	NewAnalyzer     func(token string, weights analyzer.ParameterWeights) AnalyzerPort
+	SelectParser    func(language string) (parser.Parser, error)
+	SelectPresenter func(format string, analyzedLibInfos []presenter.AnalyzedLibInfo) PresenterPort
 }
 
 var defaultDeps = Deps{
-    NewAnalyzer: func(token string, weights analyzer.ParameterWeights) AnalyzerPort {
-        return analyzer.NewGitHubRepoAnalyzer(token, weights)
-    },
-    SelectParser:    parser.SelectParser,
-    SelectPresenter: func(format string, analyzedLibInfos []presenter.AnalyzedLibInfo) PresenterPort {
-        return presenter.SelectPresenter(format, analyzedLibInfos)
-    },
+	NewAnalyzer: func(token string, weights analyzer.ParameterWeights) AnalyzerPort {
+		return analyzer.NewGitHubRepoAnalyzer(token, weights)
+	},
+	SelectParser: parser.SelectParser,
+	SelectPresenter: func(format string, analyzedLibInfos []presenter.AnalyzedLibInfo) PresenterPort {
+		return presenter.SelectPresenter(format, analyzedLibInfos)
+	},
 }
 
 // 引数を全部設定するlintを回避
@@ -68,19 +73,19 @@ var rootCmd = &cobra.Command{
 	Long: `stay_or_go scans your Go (go.mod) and Ruby (Gemfile) dependency files to evaluate each library's popularity and maintenance status.
 It generates scores to help you decide whether to keep (‘Stay’) or replace (‘Go’) your dependencies.
 Output the results in Markdown, CSV, or TSV formats.`,
-    Run: func(_ *cobra.Command, args []string) {
-        if len(args) == 0 {
-            fmt.Fprintln(os.Stderr, "Please Enter specify a language ("+
-                strings.Join(supportedLanguages, " or ")+")")
-            os.Exit(1)
-        }
+	Run: func(_ *cobra.Command, args []string) {
+		if len(args) == 0 {
+			fmt.Fprintln(os.Stderr, "Please Enter specify a language ("+
+				strings.Join(supportedLanguages, " or ")+")")
+			os.Exit(1)
+		}
 
-        language := args[0]
-        // Delegate to testable runner
-        if err := run(language, filePath, outputFormat, githubToken, configFilePath, utils.Verbose, defaultDeps); err != nil {
-            os.Exit(1)
-        }
-    },
+		language := args[0]
+		// Delegate to testable runner
+		if err := run(language, filePath, outputFormat, githubToken, configFilePath, utils.Verbose, defaultDeps); err != nil {
+			os.Exit(1)
+		}
+	},
 }
 
 func isSupportedLanguage(language string) bool {
@@ -94,11 +99,15 @@ func isSupportedLanguage(language string) bool {
 }
 
 // run executes the core logic with injectable dependencies. Returns error instead of exiting.
-func run(language, inFile, format, token, config string, verbose bool, deps Deps) error {
+//
+//nolint:funlen,cyclop // readability is prioritized; refactor would add indirection without clear benefit
+func run(language, inFile, format, token, config string, _ bool, deps Deps) error {
+
     if !isSupportedLanguage(language) {
         utils.StdErrorPrintln("Error: Unsupported language: %s. Supported languages are: %s\n",
             language, strings.Join(supportedLanguages, ", "))
-        return fmt.Errorf("unsupported language: %s", language)
+
+        return fmt.Errorf("%w: %s", parser.ErrUnsupportedLanguage, language)
     }
 
     file := inFile
@@ -113,14 +122,17 @@ func run(language, inFile, format, token, config string, verbose bool, deps Deps
         }
         utils.StdErrorPrintln("Error: Unsupported output format: %s. Supported output formats are: %s\n",
             format, strings.Join(keys, ", "))
-        return fmt.Errorf("unsupported format: %s", format)
+
+        return fmt.Errorf("%w: %s", ErrUnsupportedFormat, format)
     }
 
     if token == "" {
         token = os.Getenv("GITHUB_TOKEN")
         if token == "" {
+            //nolint:lll // error message kept in one line for clarity when printed
             fmt.Fprintln(os.Stderr, "Please provide a GitHub token using the --github-token flag or set the GITHUB_TOKEN environment variable")
-            return fmt.Errorf("missing github token")
+
+            return fmt.Errorf("%w", ErrMissingGithubToken)
         }
     }
 
@@ -135,22 +147,24 @@ func run(language, inFile, format, token, config string, verbose bool, deps Deps
     } else {
         weights = analyzer.NewParameterWeights()
     }
-    az := deps.NewAnalyzer(token, weights)
+    analyzerSvc := deps.NewAnalyzer(token, weights)
 
     utils.StdErrorPrintln("Selecting language... ")
-    pr, err := deps.SelectParser(language)
+    selectedParser, err := deps.SelectParser(language)
     if err != nil {
         utils.StdErrorPrintln("Error selecting parser: %v", err)
-        return err
+
+        return fmt.Errorf("select parser: %w", err)
     }
     utils.StdErrorPrintln("Parsing file...")
-    libInfoList, err := pr.Parse(file)
+    libInfoList, err := selectedParser.Parse(file)
     if err != nil {
         utils.StdErrorPrintln("Error parsing file: %v", err)
-        return err
+
+        return fmt.Errorf("parse file: %w", err)
     }
     utils.StdErrorPrintln("Getting repository URLs...")
-    pr.GetRepositoryURL(libInfoList)
+    selectedParser.GetRepositoryURL(libInfoList)
 
     var repoURLs []string
     for _, info := range libInfoList {
@@ -162,17 +176,17 @@ func run(language, inFile, format, token, config string, verbose bool, deps Deps
     utils.StdErrorPrintln("Analyzing libraries with Github...")
     var gitHubRepoInfos []analyzer.GitHubRepoInfo
     if len(repoURLs) > 0 {
-        gitHubRepoInfos = az.FetchGithubInfo(repoURLs)
+        gitHubRepoInfos = analyzerSvc.FetchGithubInfo(repoURLs)
     } else {
         gitHubRepoInfos = []analyzer.GitHubRepoInfo{}
     }
 
     utils.StdErrorPrintln("Making dataset...")
     analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
-    pz := deps.SelectPresenter(format, analyzedLibInfos)
+    presenterInst := deps.SelectPresenter(format, analyzedLibInfos)
 
     utils.StdErrorPrintln("Displaying result...\n")
-    pz.Display()
+    presenterInst.Display()
 
     return nil
 }
