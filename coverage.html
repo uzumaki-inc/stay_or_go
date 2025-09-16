@@ -1,0 +1,1583 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>analyzer: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/uzumaki-inc/stay_or_go/analyzer/github_repo_analyzer.go (75.9%)</option>
+				
+				<option value="file1">github.com/uzumaki-inc/stay_or_go/analyzer/parameter_weights.go (80.0%)</option>
+				
+				<option value="file2">github.com/uzumaki-inc/stay_or_go/cmd/root.go (49.2%)</option>
+				
+				<option value="file3">github.com/uzumaki-inc/stay_or_go/main.go (0.0%)</option>
+				
+				<option value="file4">github.com/uzumaki-inc/stay_or_go/parser/go_parser.go (87.7%)</option>
+				
+				<option value="file5">github.com/uzumaki-inc/stay_or_go/parser/parser.go (100.0%)</option>
+				
+				<option value="file6">github.com/uzumaki-inc/stay_or_go/parser/ruby_parser.go (89.8%)</option>
+				
+				<option value="file7">github.com/uzumaki-inc/stay_or_go/presenter/csv_presenter.go (100.0%)</option>
+				
+				<option value="file8">github.com/uzumaki-inc/stay_or_go/presenter/markdown_presenter.go (100.0%)</option>
+				
+				<option value="file9">github.com/uzumaki-inc/stay_or_go/presenter/presenter.go (78.6%)</option>
+				
+				<option value="file10">github.com/uzumaki-inc/stay_or_go/presenter/tsv_presenter.go (100.0%)</option>
+				
+				<option value="file11">github.com/uzumaki-inc/stay_or_go/utils/debug.go (8.7%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package analyzer
+
+import (
+        "context"
+        "encoding/json"
+        "errors"
+        "fmt"
+        "net/http"
+        "strings"
+        "time"
+
+        "github.com/uzumaki-inc/stay_or_go/utils"
+)
+
+var (
+        ErrGitHubTokenNotSet           = errors.New("GitHub token not set")
+        ErrFailedToAssertDefaultBranch = errors.New("failed to assert type for default_branch")
+        ErrFailedToAssertDate          = errors.New("failed to assert type for date")
+
+        ErrFailedToAssertName             = errors.New("failed to assert type for name")
+        ErrFailedToAssertSubscribersCount = errors.New("failed to assert type for subscribers_count")
+        ErrFailedToAssertStargazersCount  = errors.New("failed to assert type for stargazers_count")
+        ErrFailedToAssertForksCount       = errors.New("failed to assert type for forks_count")
+        ErrFailedToAssertOpenIssuesCount  = errors.New("failed to assert type for open_issues_count")
+        ErrFailedToAssertArchived         = errors.New("failed to assert type for archived")
+        ErrUnexpectedStatusCode           = errors.New("unexpected status code")
+)
+
+const (
+        hoursOfDay = 24
+        timeOutSec = 5
+)
+
+type RepoData struct {
+        Name             string `json:"name"`
+        SubscribersCount int    `json:"subscribers_count"`
+        StargazersCount  int    `json:"stargazers_count"`
+        ForksCount       int    `json:"forks_count"`
+        OpenIssuesCount  int    `json:"open_issues_count"`
+        Archived         bool   `json:"archived"`
+        DefaultBranch    string `json:"default_branch"`
+}
+
+type CommitData struct {
+        Commit struct {
+                Committer struct {
+                        Date string `json:"date"`
+                } `json:"committer"`
+        } `json:"commit"`
+}
+
+type GitHubRepoInfo struct {
+        RepositoryName string
+        Watchers       int
+        Stars          int
+        Forks          int
+        OpenIssues     int
+        LastCommitDate string
+        GithubRepoURL  string
+        Archived       bool
+        Score          int
+        Skip           bool   // スキップするかどうかのフラグ
+        SkipReason     string // スキップ理由
+}
+
+type GitHubRepoAnalyzer struct {
+        githubToken string
+        weights     ParameterWeights
+}
+
+func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAnalyzer <span class="cov5" title="2">{
+        return &amp;GitHubRepoAnalyzer{
+                githubToken: token,
+                weights:     weights,
+        }
+}</span>
+
+// FetchInfo fetches information for each repository
+func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo <span class="cov5" title="2">{
+        libraryInfoList := make([]GitHubRepoInfo, 0, len(repositoryUrls))
+        client := &amp;http.Client{}
+
+        for _, repoURL := range repositoryUrls </span><span class="cov5" title="2">{
+                utils.DebugPrintln("Fetching: " + repoURL)
+
+                libraryInfo, err := g.getGitHubInfo(client, repoURL)
+                if err != nil </span><span class="cov0" title="0">{
+                        libraryInfo = &amp;GitHubRepoInfo{
+                                Skip:       true,
+                                SkipReason: "Failed fetching " + repoURL + " from GitHub",
+                        }
+
+                        utils.StdErrorPrintln("Failed fetching %s, error details: %v", repoURL, err)
+                }</span>
+
+                <span class="cov5" title="2">libraryInfo.GithubRepoURL = repoURL
+                libraryInfoList = append(libraryInfoList, *libraryInfo)</span>
+        }
+
+        <span class="cov5" title="2">return libraryInfoList</span>
+}
+
+func (g *GitHubRepoAnalyzer) getGitHubInfo(
+        client *http.Client,
+        repoURL string,
+) (*GitHubRepoInfo, error) <span class="cov5" title="2">{
+        if g.githubToken == "" </span><span class="cov0" title="0">{
+                return nil, ErrGitHubTokenNotSet
+        }</span>
+
+        <span class="cov5" title="2">owner, repo := parseRepoURL(repoURL)
+
+        headers := map[string]string{
+                "Authorization": "token " + g.githubToken,
+        }
+
+        repoData, err := fetchRepoData(client, owner, repo, headers)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov5" title="2">lastCommitDate, err := fetchLastCommitDate(client, owner, repo, repoData, headers)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov5" title="2">repoInfo := createRepoInfo(repoData, lastCommitDate)
+
+        calcScore(repoInfo, &amp;g.weights)
+
+        return repoInfo, nil</span>
+}
+
+func parseRepoURL(repoURL string) (string, string) <span class="cov5" title="2">{
+        repoURL = strings.TrimSuffix(repoURL, "/")
+        parts := strings.Split(repoURL, "/")
+
+        var owner, repo string
+
+        if strings.Contains(repoURL, "/tree/") </span><span class="cov0" title="0">{
+                baseIndex := indexOf(parts, "github.com") + 1
+                owner, repo = parts[baseIndex], parts[baseIndex+1]
+        }</span> else<span class="cov5" title="2"> {
+                owner, repo = parts[len(parts)-2], parts[len(parts)-1]
+        }</span>
+
+        <span class="cov5" title="2">repo = strings.TrimSuffix(repo, ".git")
+
+        return owner, repo</span>
+}
+
+func fetchRepoData(
+        client *http.Client,
+        owner, repo string,
+        headers map[string]string,
+) (*RepoData, error) <span class="cov5" title="2">{
+        var repoData RepoData
+
+        err := fetchJSONData(client, fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo), headers, &amp;repoData)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov5" title="2">return &amp;repoData, nil</span>
+}
+
+func fetchLastCommitDate(client *http.Client, owner, repo string,
+        repoData *RepoData, headers map[string]string,
+) (string, error) <span class="cov5" title="2">{
+        commitURL := "https://api.github.com/repos/" + owner + "/" + repo + "/commits/" + repoData.DefaultBranch
+
+        var commitData CommitData
+
+        err := fetchJSONData(client, commitURL, headers, &amp;commitData)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+
+        <span class="cov5" title="2">return commitData.Commit.Committer.Date, nil</span>
+}
+
+func createRepoInfo(
+        repoData *RepoData,
+        lastCommitDate string,
+) *GitHubRepoInfo <span class="cov5" title="2">{
+        return &amp;GitHubRepoInfo{
+                RepositoryName: repoData.Name,
+                Watchers:       repoData.SubscribersCount,
+                Stars:          repoData.StargazersCount,
+                Forks:          repoData.ForksCount,
+                OpenIssues:     repoData.OpenIssuesCount,
+                LastCommitDate: lastCommitDate,
+                Archived:       repoData.Archived,
+                Skip:           false,
+                SkipReason:     "",
+        }
+}</span>
+
+func calcScore(repoInfo *GitHubRepoInfo, weights *ParameterWeights) <span class="cov5" title="2">{
+        days, err := daysSince(repoInfo.LastCommitDate)
+        if err != nil </span><span class="cov0" title="0">{
+                repoInfo.Skip = true
+
+                repoInfo.SkipReason = "Date Format Error: " + repoInfo.LastCommitDate
+
+                utils.StdErrorPrintln("Date Format Error: %v", err)
+        }</span>
+
+        <span class="cov5" title="2">score := float64(repoInfo.Watchers) * weights.Watchers
+        score += float64(repoInfo.Stars) * weights.Stars
+        score += float64(repoInfo.Forks) * weights.Forks
+        score += float64(repoInfo.OpenIssues) * weights.OpenIssues
+        score += float64(days) * weights.LastCommitDate
+        intArchived := map[bool]float64{true: 1.0, false: 0.0}[repoInfo.Archived]
+        score += (intArchived) * weights.Archived
+
+        repoInfo.Score = int(score)</span>
+}
+
+// 日付文字列から現在日までの経過日数を返す関数
+func daysSince(dateStr string) (int, error) <span class="cov5" title="2">{
+        // 入力された日付文字列をパース（UTCフォーマット）
+        layout := "2006-01-02T15:04:05Z"
+
+        parsedTime, err := time.Parse(layout, dateStr)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("failed to parse date '%s': %w", dateStr, err)
+        }</span>
+
+        <span class="cov5" title="2">currentTime := time.Now()
+        duration := currentTime.Sub(parsedTime)
+        days := int(duration.Hours() / hoursOfDay)
+
+        return days, nil</span>
+}
+
+func fetchJSONData(
+        client *http.Client,
+        url string,
+        headers map[string]string,
+        result interface{},
+) error <span class="cov10" title="4">{
+        ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+        defer cancel()
+
+        req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to create new HTTP request for URL %s: %w", url, err)
+        }</span>
+
+        <span class="cov10" title="4">for key, value := range headers </span><span class="cov10" title="4">{
+                req.Header.Set(key, value)
+        }</span>
+
+        <span class="cov10" title="4">resp, err := client.Do(req)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to execute HTTP request for URL %s: %w", url, err)
+        }</span>
+        <span class="cov10" title="4">defer resp.Body.Close()
+
+        if resp.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
+                return fmt.Errorf("%w: %d for URL %s", ErrUnexpectedStatusCode, resp.StatusCode, url)
+        }</span>
+
+        <span class="cov10" title="4">if err := json.NewDecoder(resp.Body).Decode(result); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to decode JSON response for URL %s: %w", url, err)
+        }</span>
+
+        <span class="cov10" title="4">return nil</span>
+}
+
+func indexOf(slice []string, value string) int <span class="cov0" title="0">{
+        for i, v := range slice </span><span class="cov0" title="0">{
+                if v == value </span><span class="cov0" title="0">{
+                        return i
+                }</span>
+        }
+
+        <span class="cov0" title="0">return -1</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package analyzer
+
+import (
+        "os"
+
+        "github.com/spf13/viper"
+        "github.com/uzumaki-inc/stay_or_go/utils"
+)
+
+const (
+        defaultWatcherWeight         = 0.1
+        defaultStarWeight            = 0.1
+        defaultForkWeight            = 0.1
+        defaultOpenPullRequestWeight = 0.01
+        defaultOpenIssueWeight       = 0.01
+        defaultLastCommitDateWeight  = -0.05
+        defaultArchivedWeight        = -1000000
+)
+
+type ParameterWeights struct {
+        Watchers       float64 `mapstructure:"watchers"`
+        Stars          float64 `mapstructure:"stars"`
+        Forks          float64 `mapstructure:"forks"`
+        OpenIssues     float64 `mapstructure:"open_issues"`
+        LastCommitDate float64 `mapstructure:"last_commit_date"`
+        Archived       float64 `mapstructure:"archived"`
+}
+
+func NewParameterWeights() ParameterWeights <span class="cov1" title="1">{
+        return ParameterWeights{
+                Watchers:       defaultWatcherWeight,
+                Stars:          defaultStarWeight,
+                Forks:          defaultForkWeight,
+                OpenIssues:     defaultOpenIssueWeight,
+                LastCommitDate: defaultLastCommitDateWeight,
+                Archived:       defaultArchivedWeight,
+        }
+}</span>
+
+func NewParameterWeightsFromConfiFile(configFilePath string) ParameterWeights <span class="cov10" title="2">{
+        viper.SetConfigFile(configFilePath)
+
+        if err := viper.ReadInConfig(); err != nil </span><span class="cov1" title="1">{
+                utils.StdErrorPrintln("Failed to read the configuration file: %v\n", err)
+                os.Exit(1)
+        }</span>
+
+        <span class="cov1" title="1">var weights ParameterWeights
+        if err := viper.Unmarshal(&amp;weights); err != nil </span><span class="cov0" title="0">{
+                utils.StdErrorPrintln("Failed to unmarshal the configuration: %v\n", err)
+                os.Exit(1)
+        }</span>
+
+        <span class="cov1" title="1">return weights</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package cmd
+
+import (
+        "fmt"
+        "os"
+        "strings"
+
+        "github.com/spf13/cobra"
+        "github.com/uzumaki-inc/stay_or_go/analyzer"
+        "github.com/uzumaki-inc/stay_or_go/parser"
+        "github.com/uzumaki-inc/stay_or_go/presenter"
+        "github.com/uzumaki-inc/stay_or_go/utils"
+)
+
+// var greeting string
+var (
+        filePath       string
+        outputFormat   string
+        githubToken    string
+        configFilePath string
+
+        supportedLanguages = []string{"ruby", "go"}
+        languageConfigMap  = map[string]string{
+                "ruby": "Gemfile",
+                "go":   "go.mod",
+        }
+        supportedOutputFormats = map[string]bool{
+                "csv":      true,
+                "tsv":      true,
+                "markdown": true,
+        }
+)
+
+// 引数を全部設定するlintを回避
+//
+//nolint:exhaustruct, lll
+var rootCmd = &amp;cobra.Command{
+        Use:     "stay_or_go",
+        Version: "0.1.2",
+        Short:   "Analyze and score your Go and Ruby dependencies for popularity and maintenance",
+        Long: `stay_or_go scans your Go (go.mod) and Ruby (Gemfile) dependency files to evaluate each library's popularity and maintenance status.
+It generates scores to help you decide whether to keep (‘Stay’) or replace (‘Go’) your dependencies.
+Output the results in Markdown, CSV, or TSV formats.`,
+        Run: func(_ *cobra.Command, args []string) <span class="cov7" title="4">{
+                if len(args) == 0 </span><span class="cov1" title="1">{
+                        fmt.Fprintln(os.Stderr, "Please Enter specify a language ("+
+                                strings.Join(supportedLanguages, " or ")+")")
+                        os.Exit(1)
+                }</span>
+
+                <span class="cov6" title="3">language := args[0] // Get the language argument
+                if !isSupportedLanguage(language) </span><span class="cov1" title="1">{
+                        utils.StdErrorPrintln("Error: Unsupported language: %s. Supported languages are: %s\n",
+                                language, strings.Join(supportedLanguages, ", "))
+                        os.Exit(1)
+                }</span>
+
+                <span class="cov4" title="2">if filePath == "" </span><span class="cov4" title="2">{
+                        filePath = languageConfigMap[language]
+                }</span>
+
+                <span class="cov4" title="2">if !supportedOutputFormats[outputFormat] </span><span class="cov1" title="1">{
+                        var keys []string
+                        for key := range supportedOutputFormats </span><span class="cov6" title="3">{
+                                keys = append(keys, key)
+                        }</span>
+
+                        <span class="cov1" title="1">utils.StdErrorPrintln("Error: Unsupported output format: %s. Supported output formats are: %s\n",
+                                outputFormat, strings.Join(keys, ", "))
+                        os.Exit(1)</span>
+                }
+
+                // --github-tokenのデータがなければ、環境変数　GITHUB_TOKENをチェックし
+                // それがなければ--github-tokenかGITHUB_TOKENを追加するよう促す
+                <span class="cov1" title="1">if githubToken == "" </span><span class="cov1" title="1">{
+                        githubToken = os.Getenv("GITHUB_TOKEN")
+                        if githubToken == "" </span><span class="cov1" title="1">{
+                                fmt.Fprintln(os.Stderr, "Please provide a GitHub token using the --github-token flag or set the GITHUB_TOKEN environment variable")
+                                os.Exit(1)
+                        }</span>
+                }
+
+                <span class="cov0" title="0">utils.DebugPrintln("Selected Language: " + language)
+                utils.DebugPrintln("Reading file: " + filePath)
+                utils.DebugPrintln("Output format: " + outputFormat)
+
+                var weights analyzer.ParameterWeights
+                if configFilePath != "" </span><span class="cov0" title="0">{
+                        utils.DebugPrintln("Config file: " + configFilePath)
+                        weights = analyzer.NewParameterWeightsFromConfiFile(configFilePath)
+                }</span> else<span class="cov0" title="0"> {
+                        weights = analyzer.NewParameterWeights()
+                }</span>
+                <span class="cov0" title="0">analyzer := analyzer.NewGitHubRepoAnalyzer(githubToken, weights)
+
+                utils.StdErrorPrintln("Selecting language... ")
+                parser, err := parser.SelectParser(language)
+                if err != nil </span><span class="cov0" title="0">{
+                        utils.StdErrorPrintln("Error selecting parser: %v", err)
+                        os.Exit(1)
+                }</span>
+                <span class="cov0" title="0">utils.StdErrorPrintln("Parsing file...")
+                libInfoList, err := parser.Parse(filePath)
+                if err != nil </span><span class="cov0" title="0">{
+                        utils.StdErrorPrintln("Error parsing file: %v", err)
+                        os.Exit(1)
+                }</span>
+                <span class="cov0" title="0">utils.StdErrorPrintln("Getting repository URLs...")
+                parser.GetRepositoryURL(libInfoList)
+
+                var repoURLs []string
+                for _, info := range libInfoList </span><span class="cov0" title="0">{
+                        if !info.Skip </span><span class="cov0" title="0">{
+                                repoURLs = append(repoURLs, info.RepositoryURL)
+                        }</span>
+                }
+
+                <span class="cov0" title="0">utils.StdErrorPrintln("Analyzing libraries with Github...")
+                gitHubRepoInfos := analyzer.FetchGithubInfo(repoURLs)
+
+                utils.StdErrorPrintln("Making dataset...")
+                analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
+                presenter := presenter.SelectPresenter(outputFormat, analyzedLibInfos)
+
+                utils.StdErrorPrintln("Displaying result...\n")
+                presenter.Display()</span>
+        },
+}
+
+func isSupportedLanguage(language string) bool <span class="cov6" title="3">{
+        for _, l := range supportedLanguages </span><span class="cov10" title="6">{
+                if l == language </span><span class="cov4" title="2">{
+                        return true
+                }</span>
+        }
+
+        <span class="cov1" title="1">return false</span>
+}
+
+func Execute() <span class="cov7" title="4">{
+        err := rootCmd.Execute()
+        if err != nil </span><span class="cov0" title="0">{
+                os.Exit(1)
+        }</span>
+}
+
+func init() <span class="cov9" title="5">{
+        rootCmd.Flags().StringVarP(&amp;filePath, "input", "i", "", "Specify the file to read")
+        rootCmd.Flags().StringVarP(&amp;outputFormat, "format", "f", "markdown", "Specify the output format (csv, tsv, markdown)")
+        rootCmd.Flags().StringVarP(&amp;githubToken, "github-token", "g", "", "GitHub token for authentication")
+        rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+        rootCmd.Flags().BoolVarP(&amp;utils.Verbose, "verbose", "v", false, "Enable verbose output")
+        rootCmd.Flags().StringVarP(&amp;configFilePath, "config", "c", "", "Modify evaluate parameters")
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">/*
+Copyright © 2024 @konyu
+*/
+package main
+
+import (
+        "github.com/joho/godotenv"
+        "github.com/uzumaki-inc/stay_or_go/cmd"
+)
+
+func main() <span class="cov0" title="0">{
+        // .envファイルを読み込む
+        _ = godotenv.Load()
+
+        cmd.Execute()
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package parser
+
+import (
+        "bufio"
+        "context"
+        "encoding/json"
+        "io"
+        "net/http"
+        "net/url"
+        "os"
+        "strings"
+        "time"
+
+        "github.com/uzumaki-inc/stay_or_go/utils"
+)
+
+type GoParser struct{}
+
+func (p GoParser) Parse(filePath string) ([]LibInfo, error) <span class="cov1" title="1">{
+        file, err := os.Open(filePath)
+        if err != nil </span><span class="cov0" title="0">{
+                utils.StdErrorPrintln("%v: %v", ErrFailedToReadFile, err)
+                os.Exit(1)
+        }</span>
+        <span class="cov1" title="1">defer file.Close()
+
+        replaceModules := p.collectReplaceModules(file)
+        libInfoList := p.processRequireBlock(file, replaceModules)
+
+        return libInfoList, nil</span>
+}
+
+func (p GoParser) collectReplaceModules(file *os.File) []string <span class="cov1" title="1">{
+        var replaceModules []string
+
+        var inReplaceBlock bool
+
+        scanner := bufio.NewScanner(file)
+        for scanner.Scan() </span><span class="cov10" title="13">{
+                line := strings.TrimSpace(scanner.Text())
+
+                if line == "replace (" </span><span class="cov1" title="1">{
+                        inReplaceBlock = true
+
+                        continue</span>
+                }
+
+                <span class="cov9" title="12">if line == ")" &amp;&amp; inReplaceBlock </span><span class="cov1" title="1">{
+                        inReplaceBlock = false
+
+                        continue</span>
+                }
+
+                <span class="cov9" title="11">if inReplaceBlock </span><span class="cov1" title="1">{
+                        parts := strings.Fields(line)
+                        if len(parts) &gt; 0 </span><span class="cov1" title="1">{
+                                replaceModules = append(replaceModules, parts[0])
+                        }</span>
+                }
+        }
+
+        <span class="cov1" title="1">if _, err := file.Seek(0, 0); err != nil </span><span class="cov0" title="0">{ // Reset file pointer for next pass
+                utils.StdErrorPrintln("%v: %v", ErrFailedToResetFilePointer, err)
+                os.Exit(1)
+        }</span>
+
+        <span class="cov1" title="1">return replaceModules</span>
+}
+
+func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []LibInfo <span class="cov1" title="1">{
+        var libInfoList []LibInfo
+
+        var inRequireBlock bool
+
+        scanner := bufio.NewScanner(file)
+        for scanner.Scan() </span><span class="cov10" title="13">{
+                line := strings.TrimSpace(scanner.Text())
+
+                if line == "require (" </span><span class="cov1" title="1">{
+                        inRequireBlock = true
+
+                        continue</span>
+                }
+
+                <span class="cov9" title="12">if line == ")" &amp;&amp; inRequireBlock </span><span class="cov1" title="1">{
+                        inRequireBlock = false
+
+                        continue</span>
+                }
+
+                <span class="cov9" title="11">if inRequireBlock &amp;&amp; !strings.Contains(line, "// indirect") </span><span class="cov5" title="4">{
+                        parts := strings.Fields(line)
+                        if len(parts) &gt; 0 </span><span class="cov5" title="4">{
+                                module := parts[0]
+                                libParts := strings.Split(parts[0], "/")
+                                libName := libParts[len(libParts)-1]
+
+                                var newLib LibInfo
+
+                                if contains(replaceModules, module) </span><span class="cov1" title="1">{
+                                        newLib = NewLibInfo(libName, WithSkip(true), WithSkipReason("replaced module"))
+                                }</span> else<span class="cov4" title="3"> {
+                                        newLib = NewLibInfo(libName, WithOthers([]string{parts[0], parts[1]}))
+                                }</span>
+
+                                <span class="cov5" title="4">libInfoList = append(libInfoList, newLib)</span>
+                        }
+                }
+        }
+
+        <span class="cov1" title="1">if err := scanner.Err(); err != nil </span><span class="cov0" title="0">{
+                utils.StdErrorPrintln("%v: %v", ErrFailedToScanFile, err)
+                os.Exit(1)
+        }</span>
+
+        <span class="cov1" title="1">return libInfoList</span>
+}
+
+func contains(slice []string, item string) bool <span class="cov5" title="4">{
+        for _, s := range slice </span><span class="cov5" title="4">{
+                if s == item </span><span class="cov1" title="1">{
+                        return true
+                }</span>
+        }
+
+        <span class="cov4" title="3">return false</span>
+}
+
+func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo <span class="cov1" title="1">{
+        client := &amp;http.Client{}
+
+        for i := range libInfoList </span><span class="cov5" title="4">{
+                libInfo := &amp;libInfoList[i]
+
+                if libInfo.Skip </span><span class="cov1" title="1">{
+                        continue</span>
+                }
+
+                <span class="cov4" title="3">name := libInfo.Others[0]
+                version := libInfo.Others[1]
+
+                repoURL, err := p.getGitHubRepositoryURL(client, name, version)
+                if err != nil </span><span class="cov1" title="1">{
+                        libInfo.Skip = true
+                        libInfo.SkipReason = "Does not support libraries hosted outside of Github"
+
+                        utils.StdErrorPrintln("%s does not support libraries hosted outside of Github: %s", name, err)
+
+                        continue</span>
+                }
+
+                <span class="cov3" title="2">libInfo.RepositoryURL = repoURL</span>
+        }
+
+        <span class="cov1" title="1">return libInfoList</span>
+}
+
+type GoRepository struct {
+        Version string `json:"version"`
+        Time    string `json:"time"`
+        Origin  Origin `json:"origin"`
+}
+
+type Origin struct {
+        VCS  string `json:"vcs"`
+        URL  string `json:"url"`
+        Ref  string `json:"ref"`
+        Hash string `json:"hash"`
+}
+
+func (p GoParser) getGitHubRepositoryURL(
+        client *http.Client,
+        name,
+        version string,
+) (string, error) <span class="cov4" title="3">{
+        ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+        defer cancel()
+
+        baseURL := "https://proxy.golang.org/"
+        repoURL := baseURL + name + "/@v/" + version + ".info"
+        utils.DebugPrintln("Fetching: " + repoURL)
+
+        parsedURL, err := url.Parse(repoURL)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToGetRepository
+        }</span>
+
+        <span class="cov4" title="3">req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToGetRepository
+        }</span>
+
+        <span class="cov4" title="3">response, err := client.Do(req)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToGetRepository
+        }</span>
+
+        <span class="cov4" title="3">defer response.Body.Close()
+
+        if response.StatusCode != http.StatusOK </span><span class="cov1" title="1">{
+                return "", ErrNotAGitHubRepository
+        }</span>
+
+        <span class="cov3" title="2">bodyBytes, err := io.ReadAll(response.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToReadResponseBody
+        }</span>
+
+        <span class="cov3" title="2">repoURLfromGithub, err := extractRepoURL(bodyBytes, name)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+
+        <span class="cov3" title="2">return repoURLfromGithub, nil</span>
+}
+
+func extractRepoURL(bodyBytes []byte, name string) (string, error) <span class="cov3" title="2">{
+        var repo GoRepository
+
+        err := json.Unmarshal(bodyBytes, &amp;repo)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToUnmarshalJSON
+        }</span>
+
+        <span class="cov3" title="2">repoURLfromGithub := repo.Origin.URL
+
+        // If there is no URL, use the package name
+        if repoURLfromGithub == "" &amp;&amp; strings.Contains(name, "github.com") </span><span class="cov1" title="1">{
+                repoURLfromGithub = "https://" + name
+        }</span>
+
+        <span class="cov3" title="2">if repoURLfromGithub == "" || !strings.Contains(repoURLfromGithub, "github.com") </span><span class="cov0" title="0">{
+                return "", ErrNotAGitHubRepository
+        }</span>
+
+        <span class="cov3" title="2">return repoURLfromGithub, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package parser
+
+import (
+        "errors"
+        "fmt"
+)
+
+var (
+        ErrMethodNotFound           = errors.New("method not found in struct")
+        ErrFiledToOpenFile          = errors.New("error opening file")
+        ErrFailedToReadFile         = errors.New("failed to read file")
+        ErrFailedToResetFilePointer = errors.New("failed to reset file pointer")
+        ErrFailedToScanFile         = errors.New("failed to scan file")
+        ErrFailedToGetRepository    = errors.New("can't get the gem repository, skipping")
+        ErrNotAGitHubRepository     = errors.New("not a GitHub repository, skipping")
+        ErrFailedToReadResponseBody = errors.New("failed to read response body")
+        ErrFailedToUnmarshalJSON    = errors.New("failed to unmarshal JSON response")
+        ErrInvalidLineFormat        = errors.New("invalid line format")
+        ErrMissingGemName           = errors.New("missing gem name")
+        ErrUnsupportedLanguage      = errors.New("unsupported language")
+)
+
+const timeOutSec = 30
+
+type LibInfo struct {
+        Skip          bool     // スキップするかどうかのフラグ
+        SkipReason    string   // スキップ理由
+        Name          string   // ライブラリの名前
+        Others        []string // その他のライブラリの設定値
+        RepositoryURL string   // githubのりポトリのURL
+}
+
+type LibInfoOption func(*LibInfo)
+
+func WithSkip(skip bool) LibInfoOption <span class="cov4" title="3">{
+        return func(l *LibInfo) </span><span class="cov4" title="3">{
+                l.Skip = skip
+        }</span>
+}
+
+func WithSkipReason(reason string) LibInfoOption <span class="cov4" title="3">{
+        return func(l *LibInfo) </span><span class="cov4" title="3">{
+                l.SkipReason = reason
+        }</span>
+}
+
+func WithOthers(others []string) LibInfoOption <span class="cov7" title="7">{
+        return func(l *LibInfo) </span><span class="cov7" title="7">{
+                l.Others = others
+        }</span>
+}
+
+func NewLibInfo(name string, options ...LibInfoOption) LibInfo <span class="cov9" title="10">{
+        libInfo := LibInfo{
+                Name:          name,
+                Skip:          false,
+                SkipReason:    "",
+                Others:        nil,
+                RepositoryURL: "",
+        }
+
+        for _, option := range options </span><span class="cov10" title="13">{
+                option(&amp;libInfo)
+        }</span>
+
+        <span class="cov9" title="10">return libInfo</span>
+}
+
+type Parser interface {
+        Parse(file string) ([]LibInfo, error)
+        GetRepositoryURL(AnalyzedLibInfoList []LibInfo) []LibInfo
+}
+
+func SelectParser(language string) (Parser, error) <span class="cov4" title="3">{
+        switch language </span>{
+        case "ruby":<span class="cov1" title="1">
+                return RubyParser{}, nil</span>
+        case "go":<span class="cov1" title="1">
+                return GoParser{}, nil</span>
+        default:<span class="cov1" title="1">
+                return nil, fmt.Errorf("%w: %s", ErrUnsupportedLanguage, language)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package parser
+
+import (
+        "bufio"
+        "context"
+        "encoding/json"
+        "fmt"
+        "io"
+        "net/http"
+        "net/url"
+        "os"
+        "regexp"
+        "strings"
+        "time"
+
+        "github.com/uzumaki-inc/stay_or_go/utils"
+)
+
+type RubyParser struct{}
+
+type RubyRepository struct {
+        SourceCodeURI string `json:"source_code_uri"`
+        HomepageURI   string `json:"homepage_uri"`
+}
+
+// Parse メソッド
+func (p RubyParser) Parse(filePath string) ([]LibInfo, error) <span class="cov3" title="2">{
+        lines, err := p.readLines(filePath)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov3" title="2">var libs []LibInfo
+
+        inOtherBlock := false
+
+        for _, line := range lines </span><span class="cov10" title="16">{
+                if p.isOtherBlockStart(line) </span><span class="cov4" title="3">{
+                        inOtherBlock = true
+
+                        continue</span>
+                }
+
+                <span class="cov9" title="13">if p.isBlockEnd(line) </span><span class="cov4" title="3">{
+                        inOtherBlock = false
+
+                        continue</span>
+                }
+
+                // gem を解析
+                <span class="cov8" title="10">if gemName := p.extractGemName(line); gemName != "" </span><span class="cov7" title="7">{
+                        isNgGem := p.containsInvalidKeywords(line)
+                        lib := p.createLibInfo(gemName, isNgGem, inOtherBlock)
+                        libs = append(libs, lib)
+                }</span>
+        }
+
+        <span class="cov3" title="2">return libs, nil</span>
+}
+
+// ファイルの内容を行ごとに読み取る
+func (p *RubyParser) readLines(filePath string) ([]string, error) <span class="cov3" title="2">{
+        file, err := os.Open(filePath)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("%w: %w", ErrFiledToOpenFile, err)
+        }</span>
+        <span class="cov3" title="2">defer file.Close()
+
+        var lines []string
+
+        scanner := bufio.NewScanner(file)
+        for scanner.Scan() </span><span class="cov10" title="16">{
+                lines = append(lines, strings.TrimSpace(scanner.Text()))
+        }</span>
+
+        <span class="cov3" title="2">if err := scanner.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("%w: %w", ErrFailedToReadFile, err)
+        }</span>
+
+        <span class="cov3" title="2">return lines, nil</span>
+}
+
+// その他のブロックの開始か判定
+func (p *RubyParser) isOtherBlockStart(line string) bool <span class="cov10" title="16">{
+        sourceStartRegex := regexp.MustCompile(`source\s+['"].+['"]\s+do`)
+        platformsStartRegex := regexp.MustCompile(`platforms\s+[:\w,]+\s+do`)
+        installIfStartRegex := regexp.MustCompile(`install_if\s+-&gt;\s+\{.*\}\s+do`)
+
+        return sourceStartRegex.MatchString(line) ||
+                platformsStartRegex.MatchString(line) ||
+                installIfStartRegex.MatchString(line)
+}</span>
+
+// ブロックの終了か判定
+func (p *RubyParser) isBlockEnd(line string) bool <span class="cov9" title="13">{
+        endRegex := regexp.MustCompile(`^end$`)
+
+        return endRegex.MatchString(line)
+}</span>
+
+// gem 名を抽出
+func (p *RubyParser) extractGemName(line string) string <span class="cov8" title="10">{
+        gemRegex := regexp.MustCompile(`gem ['"]([^'"]+)['"]`)
+
+        if matches := gemRegex.FindStringSubmatch(line); matches != nil </span><span class="cov7" title="7">{
+                return matches[1]
+        }</span>
+
+        <span class="cov4" title="3">return ""</span>
+}
+
+func (p *RubyParser) containsInvalidKeywords(line string) bool <span class="cov7" title="7">{
+        // カンマ区切りで分割
+        parts := strings.Split(line, ",")
+
+        // 判定するキーワード
+        ngKeywords := []string{"source", "git", "github"}
+
+        // 2番目以降をチェック
+        for _, part := range parts[1:] </span><span class="cov3" title="2">{
+                trimmedPart := strings.TrimSpace(part)
+                for _, keyword := range ngKeywords </span><span class="cov6" title="5">{
+                        if strings.Contains(trimmedPart, keyword) </span><span class="cov1" title="1">{
+                                return true
+                        }</span>
+                }
+        }
+
+        <span class="cov6" title="6">return false</span>
+}
+
+func (p *RubyParser) createLibInfo(gemName string, isNgGem bool, inOtherBlock bool) LibInfo <span class="cov7" title="7">{
+        lib := LibInfo{Name: gemName}
+        if isNgGem </span><span class="cov1" title="1">{
+                lib.Skip = true
+                lib.SkipReason = "Not hosted on Github"
+        }</span> else<span class="cov6" title="6"> if inOtherBlock </span><span class="cov4" title="3">{
+                lib.Skip = true
+                lib.SkipReason = "Not hosted on Github"
+        }</span>
+
+        <span class="cov7" title="7">return lib</span>
+}
+
+func (p RubyParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo <span class="cov3" title="2">{
+        client := &amp;http.Client{}
+
+        for i := range libInfoList </span><span class="cov5" title="4">{
+                // ポインタを取得
+                libInfo := &amp;libInfoList[i]
+                name := libInfo.Name
+
+                if libInfo.Skip </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov5" title="4">repoURL, err := p.getGitHubRepositoryURL(client, name)
+                if err != nil </span><span class="cov3" title="2">{
+                        libInfo.Skip = true
+                        libInfo.SkipReason = "Does not support libraries hosted outside of Github"
+
+                        utils.StdErrorPrintln("%s does not support libraries hosted outside of Github: %s", name, err)
+
+                        continue</span>
+                }
+
+                <span class="cov3" title="2">libInfo.RepositoryURL = repoURL</span>
+        }
+
+        <span class="cov3" title="2">return libInfoList</span>
+}
+
+func (p RubyParser) getGitHubRepositoryURL(client *http.Client, name string) (string, error) <span class="cov5" title="4">{
+        ctx, cancel := context.WithTimeout(context.Background(), timeOutSec*time.Second)
+        defer cancel()
+
+        baseURL := "https://rubygems.org/api/v1/gems/"
+        repoURL := baseURL + name + ".json"
+        utils.DebugPrintln("Fetching: " + repoURL)
+
+        parsedURL, err := url.Parse(repoURL)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToGetRepository
+        }</span>
+
+        <span class="cov5" title="4">req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToGetRepository
+        }</span>
+
+        <span class="cov5" title="4">response, err := client.Do(req)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToGetRepository
+        }</span>
+        <span class="cov5" title="4">defer response.Body.Close()
+
+        if response.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
+                return "", ErrNotAGitHubRepository
+        }</span>
+
+        <span class="cov5" title="4">bodyBytes, err := io.ReadAll(response.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToReadResponseBody
+        }</span>
+
+        <span class="cov5" title="4">var repo RubyRepository
+
+        err = json.Unmarshal(bodyBytes, &amp;repo)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", ErrFailedToUnmarshalJSON
+        }</span>
+
+        <span class="cov5" title="4">repoURLfromRubyGems := repo.SourceCodeURI
+
+        if repoURLfromRubyGems == "" </span><span class="cov4" title="3">{
+                repoURLfromRubyGems = repo.HomepageURI
+        }</span>
+
+        <span class="cov5" title="4">if repoURLfromRubyGems == "" || !strings.Contains(repoURLfromRubyGems, "github.com") </span><span class="cov3" title="2">{
+                return "", ErrNotAGitHubRepository
+        }</span>
+
+        <span class="cov3" title="2">return repoURLfromRubyGems, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package presenter
+
+import (
+        "strings"
+)
+
+type CsvPresenter struct {
+        analyzedLibInfos []AnalyzedLibInfo
+}
+
+func (p CsvPresenter) Display() <span class="cov10" title="2">{
+        Display(p)
+}</span>
+
+func (p CsvPresenter) makeHeader() []string <span class="cov10" title="2">{
+        headerRow := strings.Join(headerString, ", ")
+
+        return []string{headerRow}
+}</span>
+
+func (p CsvPresenter) makeBody() []string <span class="cov10" title="2">{
+        return makeBody(p.analyzedLibInfos, ", ")
+}</span>
+
+func NewCsvPresenter(infos []AnalyzedLibInfo) CsvPresenter <span class="cov10" title="2">{
+        return CsvPresenter{analyzedLibInfos: infos}
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package presenter
+
+import (
+        "strings"
+)
+
+type MarkdownPresenter struct {
+        analyzedLibInfos []AnalyzedLibInfo
+}
+
+func (p MarkdownPresenter) Display() <span class="cov3" title="2">{
+        Display(p)
+}</span>
+
+func (p MarkdownPresenter) makeHeader() []string <span class="cov3" title="2">{
+        headerRow := "| " + strings.Join(headerString, " | ") + " |"
+
+        separatorRow := "|"
+        for _, header := range headerString </span><span class="cov10" title="22">{
+                separatorRow += " " + strings.Repeat("-", len(header)) + " |"
+        }</span>
+
+        <span class="cov3" title="2">return []string{headerRow, separatorRow}</span>
+}
+
+func (p MarkdownPresenter) makeBody() []string <span class="cov3" title="2">{
+        return makeBody(p.analyzedLibInfos, "|")
+}</span>
+
+func NewMarkdownPresenter(infos []AnalyzedLibInfo) MarkdownPresenter <span class="cov3" title="2">{
+        return MarkdownPresenter{analyzedLibInfos: infos}
+}</span>
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package presenter
+
+import (
+        "fmt"
+        "os"
+        "reflect"
+
+        "github.com/uzumaki-inc/stay_or_go/analyzer"
+        "github.com/uzumaki-inc/stay_or_go/parser"
+        "github.com/uzumaki-inc/stay_or_go/utils"
+)
+
+type AnalyzedLibInfo struct {
+        LibInfo        *parser.LibInfo
+        GitHubRepoInfo *analyzer.GitHubRepoInfo
+}
+
+func (ainfo AnalyzedLibInfo) Name() *string <span class="cov5" title="9">{
+        if ainfo.LibInfo.Name != "" </span><span class="cov5" title="9">{
+                return &amp;ainfo.LibInfo.Name
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) RepositoryURL() *string <span class="cov5" title="9">{
+        if ainfo.LibInfo.RepositoryURL != "" </span><span class="cov4" title="6">{
+                return &amp;ainfo.LibInfo.RepositoryURL
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) Watchers() *int <span class="cov5" title="9">{
+        if ainfo.GitHubRepoInfo != nil </span><span class="cov4" title="6">{
+                return &amp;ainfo.GitHubRepoInfo.Watchers
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) Stars() *int <span class="cov5" title="9">{
+        if ainfo.GitHubRepoInfo != nil </span><span class="cov4" title="6">{
+                return &amp;ainfo.GitHubRepoInfo.Stars
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) Forks() *int <span class="cov5" title="9">{
+        if ainfo.GitHubRepoInfo != nil </span><span class="cov4" title="6">{
+                return &amp;ainfo.GitHubRepoInfo.Forks
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) OpenIssues() *int <span class="cov5" title="9">{
+        if ainfo.GitHubRepoInfo != nil </span><span class="cov4" title="6">{
+                return &amp;ainfo.GitHubRepoInfo.OpenIssues
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) LastCommitDate() *string <span class="cov5" title="9">{
+        if ainfo.GitHubRepoInfo != nil </span><span class="cov4" title="6">{
+                return &amp;ainfo.GitHubRepoInfo.LastCommitDate
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) GithubRepoURL() *string <span class="cov0" title="0">{
+        if ainfo.GitHubRepoInfo != nil </span><span class="cov0" title="0">{
+                return &amp;ainfo.GitHubRepoInfo.GithubRepoURL
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) Archived() *bool <span class="cov5" title="9">{
+        if ainfo.GitHubRepoInfo != nil </span><span class="cov4" title="6">{
+                return &amp;ainfo.GitHubRepoInfo.Archived
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) Score() *int <span class="cov5" title="9">{
+        if ainfo.GitHubRepoInfo != nil </span><span class="cov4" title="6">{
+                return &amp;ainfo.GitHubRepoInfo.Score
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+func (ainfo AnalyzedLibInfo) Skip() *bool <span class="cov5" title="9">{
+        trueValue := true
+        falseValue := false
+
+        if ainfo.LibInfo.Skip </span><span class="cov3" title="3">{
+                return &amp;trueValue
+        }</span> else<span class="cov4" title="6"> if ainfo.GitHubRepoInfo.Skip </span><span class="cov0" title="0">{
+                return &amp;trueValue
+        }</span>
+
+        <span class="cov4" title="6">return &amp;falseValue</span>
+}
+
+func (ainfo AnalyzedLibInfo) SkipReason() *string <span class="cov5" title="9">{
+        if ainfo.LibInfo.Skip </span><span class="cov3" title="3">{
+                return &amp;ainfo.LibInfo.SkipReason
+        }</span> else<span class="cov4" title="6"> if ainfo.GitHubRepoInfo.Skip </span><span class="cov0" title="0">{
+                return &amp;ainfo.GitHubRepoInfo.SkipReason
+        }</span>
+
+        <span class="cov4" title="6">return nil</span>
+}
+
+func MakeAnalyzedLibInfoList(
+        libInfoList []parser.LibInfo,
+        gitHubRepoInfos []analyzer.GitHubRepoInfo,
+) []AnalyzedLibInfo <span class="cov0" title="0">{
+        analyzedLibInfos := make([]AnalyzedLibInfo, 0, len(libInfoList))
+
+        repoIndex := 0
+
+        for _, info := range libInfoList </span><span class="cov0" title="0">{
+                analyzedLibInfo := AnalyzedLibInfo{
+                        LibInfo:        &amp;info,
+                        GitHubRepoInfo: nil,
+                }
+
+                if repoIndex &lt; len(gitHubRepoInfos) &amp;&amp; info.RepositoryURL == gitHubRepoInfos[repoIndex].GithubRepoURL </span><span class="cov0" title="0">{
+                        analyzedLibInfo.GitHubRepoInfo = &amp;gitHubRepoInfos[repoIndex]
+                        repoIndex++
+                }</span>
+
+                <span class="cov0" title="0">analyzedLibInfos = append(analyzedLibInfos, analyzedLibInfo)</span>
+        }
+
+        <span class="cov0" title="0">return analyzedLibInfos</span>
+}
+
+type Presenter interface {
+        Display()
+        makeHeader() []string
+        makeBody() []string
+}
+
+func Display(p Presenter) <span class="cov4" title="6">{
+        header := p.makeHeader()
+        body := p.makeBody()
+
+        for _, line := range header </span><span class="cov5" title="8">{
+                fmt.Println(line)
+        }</span>
+
+        <span class="cov4" title="6">for _, line := range body </span><span class="cov5" title="9">{
+                fmt.Println(line)
+        }</span>
+}
+
+func makeBody(analyzedLibInfos []AnalyzedLibInfo, separator string) []string <span class="cov4" title="6">{
+        rows := []string{}
+
+        for _, info := range analyzedLibInfos </span><span class="cov5" title="9">{
+                row := ""
+                val := reflect.ValueOf(info)
+
+                if val.Kind() == reflect.Ptr </span><span class="cov0" title="0">{
+                        val = val.Elem()
+                }</span>
+
+                <span class="cov5" title="9">for index, header := range headerString </span><span class="cov10" title="99">{
+                        method := val.MethodByName(header)
+
+                        if method.IsValid() </span><span class="cov10" title="99">{
+                                result := method.Call(nil)
+
+                                var resultStr interface{}
+
+                                if len(result) &gt; 0 &amp;&amp; result[0].IsValid() &amp;&amp; !result[0].IsNil() </span><span class="cov9" title="69">{
+                                        resultStr = result[0].Elem().Interface()
+                                }</span> else<span class="cov7" title="30"> {
+                                        resultStr = "N/A"
+                                }</span>
+
+                                <span class="cov10" title="99">row += fmt.Sprintf("%v", resultStr)
+                                // 最後の要素でない場合にのみseparatorを追加
+                                if index &lt; len(headerString)-1 </span><span class="cov9" title="90">{
+                                        row += separator
+                                }</span>
+                        } else<span class="cov0" title="0"> {
+                                utils.StdErrorPrintln("method %s not found in %v", header, info)
+                                os.Exit(1)
+                        }</span>
+                }
+
+                <span class="cov5" title="9">if separator == "|" </span><span class="cov3" title="3">{
+                        row = "|" + row + "|"
+                }</span>
+
+                <span class="cov5" title="9">rows = append(rows, row)</span>
+        }
+
+        <span class="cov4" title="6">return rows</span>
+}
+
+var headerString = []string{
+        "Name",
+        "RepositoryURL",
+        "Watchers",
+        "Stars",
+        "Forks",
+        "OpenIssues",
+        "LastCommitDate",
+        "Archived",
+        "Score",
+        "Skip",
+        "SkipReason",
+}
+
+func SelectPresenter(format string, analyzedLibInfos []AnalyzedLibInfo) Presenter <span class="cov3" title="4">{
+        switch format </span>{
+        case "tsv":<span class="cov1" title="1">
+                return TsvPresenter{analyzedLibInfos}</span>
+        case "csv":<span class="cov1" title="1">
+                return CsvPresenter{analyzedLibInfos}</span>
+        default:<span class="cov2" title="2">
+                return MarkdownPresenter{analyzedLibInfos}</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package presenter
+
+import (
+        "strings"
+)
+
+type TsvPresenter struct {
+        analyzedLibInfos []AnalyzedLibInfo
+}
+
+func (p TsvPresenter) Display() <span class="cov10" title="2">{
+        Display(p)
+}</span>
+
+func (p TsvPresenter) makeHeader() []string <span class="cov10" title="2">{
+        headerRow := strings.Join(headerString, "\t")
+
+        return []string{headerRow}
+}</span>
+
+func (p TsvPresenter) makeBody() []string <span class="cov10" title="2">{
+        return makeBody(p.analyzedLibInfos, "\t")
+}</span>
+
+func NewTsvPresenter(infos []AnalyzedLibInfo) TsvPresenter <span class="cov10" title="2">{
+        return TsvPresenter{analyzedLibInfos: infos}
+}</span>
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package utils
+
+import (
+        "fmt"
+        "os"
+        "reflect"
+)
+
+var Verbose bool
+
+func DebugPrintln(message string) <span class="cov10" title="9">{
+        if Verbose </span><span class="cov0" title="0">{
+                StdErrorPrintln(message)
+        }</span>
+}
+
+func StdErrorPrintln(message string, a ...interface{}) <span class="cov8" title="6">{
+        fmt.Fprintf(os.Stderr, message+"\n", a...)
+}</span>
+
+func PrintStructFields(structObj interface{}) <span class="cov0" title="0">{
+        if structObj == nil </span><span class="cov0" title="0">{
+                fmt.Println("nil value provided")
+
+                return
+        }</span>
+
+        <span class="cov0" title="0">val := reflect.ValueOf(structObj)
+        typ := reflect.TypeOf(structObj)
+
+        if val.Kind() == reflect.Ptr </span><span class="cov0" title="0">{
+                if val.IsNil() </span><span class="cov0" title="0">{
+                        fmt.Println("nil pointer provided")
+
+                        return
+                }</span>
+
+                <span class="cov0" title="0">val = val.Elem()
+                typ = typ.Elem()</span>
+        }
+
+        <span class="cov0" title="0">if val.Kind() != reflect.Struct </span><span class="cov0" title="0">{
+                fmt.Println("provided value is not a struct")
+
+                return
+        }</span>
+
+        <span class="cov0" title="0">for i := range make([]struct{}, val.NumField()) </span><span class="cov0" title="0">{
+                fieldName := typ.Field(i).Name
+                fieldValue := val.Field(i)
+
+                if fieldValue.Kind() == reflect.Ptr &amp;&amp; fieldValue.IsNil() </span><span class="cov0" title="0">{
+                        fmt.Printf("%s: nil\n", fieldName)
+                }</span> else<span class="cov0" title="0"> {
+                        fmt.Printf("%s: %v\n", fieldName, fieldValue.Interface())
+                }</span>
+        }
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

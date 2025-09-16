@@ -15,7 +15,7 @@ import (
 //
 //nolint:tparallel
 func TestDisplay(t *testing.T) {
-	t.Parallel()
+    // Avoid running in parallel since this test manipulates os.Stdout
 
 	testCases := []struct {
 		name           string
