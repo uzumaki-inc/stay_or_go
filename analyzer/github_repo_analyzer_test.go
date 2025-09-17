@@ -48,7 +48,7 @@ func TestFetchGithubInfo(t *testing.T) {
 	})
 
 	// テスト実行
-	repoURLs := []string{"https://api.github.com/repos/example-owner/example-repo"}
+	repoURLs := []string{"https://github.com/example-owner/example-repo"}
 	repoInfos := analyzer.FetchGithubInfo(repoURLs)
 
 	assert.Len(t, repoInfos, 1, "Expected 1 repo info")
@@ -99,7 +99,7 @@ func TestScoreIncludesWatchers(t *testing.T) {
 		Archived:       0.0,
 	})
 
-	repoInfos := analyzer.FetchGithubInfo([]string{"https://api.github.com/repos/example-owner/example-repo"})
+	repoInfos := analyzer.FetchGithubInfo([]string{"https://github.com/example-owner/example-repo"})
 
 	assert.Len(t, repoInfos, 1)
 	assert.Equal(t, 20, repoInfos[0].Score)

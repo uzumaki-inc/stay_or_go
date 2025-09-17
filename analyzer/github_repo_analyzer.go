@@ -137,13 +137,7 @@ func parseRepoURL(repoURL string) (string, string) {
 
 	var owner, repo string
 
-	if strings.Contains(repoURL, "/tree/") {
-		baseIndex := indexOf(parts, "github.com") + 1
-		owner, repo = parts[baseIndex], parts[baseIndex+1]
-	} else {
-		owner, repo = parts[len(parts)-2], parts[len(parts)-1]
-	}
-
+	owner, repo = parts[3], parts[4]
 	repo = strings.TrimSuffix(repo, ".git")
 
 	return owner, repo

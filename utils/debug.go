@@ -6,11 +6,16 @@ import (
 	"reflect"
 )
 
+const (
+	ansiReset = "\033[0m"
+	ansiRed   = "\033[31m"
+)
+
 var Verbose bool
 
 func DebugPrintln(message string) {
 	if Verbose {
-		StdErrorPrintln(message)
+		fmt.Fprintf(os.Stderr, "%s%s%s\n", ansiRed, message, ansiReset)
 	}
 }
 
