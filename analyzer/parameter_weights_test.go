@@ -1,27 +1,29 @@
 package analyzer_test
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/uzumaki-inc/stay_or_go/analyzer"
 )
 
 func TestNewParameterWeightsDefaults(t *testing.T) {
 	t.Parallel()
 
-	w := analyzer.NewParameterWeights()
+	weights := analyzer.NewParameterWeights()
 
 	// Default weights should match implementation defaults
-	assert.InDelta(t, 0.1, w.Watchers, 0.0001)
-	assert.InDelta(t, 0.1, w.Stars, 0.0001)
-	assert.InDelta(t, 0.1, w.Forks, 0.0001)
-	assert.InDelta(t, 0.01, w.OpenIssues, 0.0001)
-	assert.InDelta(t, -0.05, w.LastCommitDate, 0.0001)
-	assert.InDelta(t, -1000000.0, w.Archived, 0.1)
+	assert.InDelta(t, 0.1, weights.Watchers, 0.0001)
+	assert.InDelta(t, 0.1, weights.Stars, 0.0001)
+	assert.InDelta(t, 0.1, weights.Forks, 0.0001)
+	assert.InDelta(t, 0.01, weights.OpenIssues, 0.0001)
+	assert.InDelta(t, -0.05, weights.LastCommitDate, 0.0001)
+	assert.InDelta(t, -1000000.0, weights.Archived, 0.1)
 }
 
 func TestNewParameterWeightsFromConfiFile_LoadsValues(t *testing.T) {
@@ -37,18 +39,19 @@ func TestNewParameterWeightsFromConfiFile_LoadsValues(t *testing.T) {
 			"last_commit_date: -6.5\n" +
 			"archived: -99999\n",
 	)
+
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatalf("failed to write temp config: %v", err)
 	}
 
-	w := analyzer.NewParameterWeightsFromConfiFile(path)
+	weights := analyzer.NewParameterWeightsFromConfiFile(path)
 
-	assert.InDelta(t, 1.5, w.Watchers, 0.0001)
-	assert.InDelta(t, 2.5, w.Stars, 0.0001)
-	assert.InDelta(t, 3.5, w.Forks, 0.0001)
-	assert.InDelta(t, 4.5, w.OpenIssues, 0.0001)
-	assert.InDelta(t, -6.5, w.LastCommitDate, 0.0001)
-	assert.InDelta(t, -99999.0, w.Archived, 0.0001)
+	assert.InDelta(t, 1.5, weights.Watchers, 0.0001)
+	assert.InDelta(t, 2.5, weights.Stars, 0.0001)
+	assert.InDelta(t, 3.5, weights.Forks, 0.0001)
+	assert.InDelta(t, 4.5, weights.OpenIssues, 0.0001)
+	assert.InDelta(t, -6.5, weights.LastCommitDate, 0.0001)
+	assert.InDelta(t, -99999.0, weights.Archived, 0.0001)
 }
 
 // Test that an invalid path leads to os.Exit(1). Use helper process pattern.
@@ -63,7 +66,10 @@ func TestNewParameterWeightsFromConfiFile_ExitOnMissing(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected non-nil error (exit), got nil")
 	}
-	if exitErr, ok := err.(*exec.ExitError); ok {
+
+	var exitErr *exec.ExitError
+
+	if errors.As(err, &exitErr) {
 		if exitErr.ExitCode() != 1 {
 			t.Fatalf("expected exit code 1, got %d", exitErr.ExitCode())
 		}
@@ -73,11 +79,14 @@ func TestNewParameterWeightsFromConfiFile_ExitOnMissing(t *testing.T) {
 }
 
 // Helper for the sub-process exit test.
+//
+//nolint:paralleltest // Test helper process for subprocess testing
 func TestHelperProcess_WeightsExit(t *testing.T) {
 	if os.Getenv("GO_WANT_HELPER_PROCESS_WEIGHTS") != "1" {
 		return
 	}
 	// This should trigger os.Exit(1) internally
 	_ = analyzer.NewParameterWeightsFromConfiFile("/path/does/not/exist.yml")
+
 	t.Fatalf("should have exited before reaching here")
 }

@@ -5,6 +5,7 @@ package main
 
 import (
 	"github.com/joho/godotenv"
+
 	"github.com/uzumaki-inc/stay_or_go/cmd"
 )
 

@@ -1,52 +1,41 @@
-package presenter
+package presenter_test
 
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/uzumaki-inc/stay_or_go/analyzer"
 	"github.com/uzumaki-inc/stay_or_go/parser"
+	"github.com/uzumaki-inc/stay_or_go/presenter"
 )
 
 func TestAnalyzedLibInfo_EmptyLibInfo_NoRepoInfo(t *testing.T) {
 	t.Parallel()
 
-	info := AnalyzedLibInfo{LibInfo: &parser.LibInfo{Skip: true, SkipReason: "li"}, GitHubRepoInfo: nil}
+	info := presenter.AnalyzedLibInfo{LibInfo: &parser.LibInfo{Skip: true, SkipReason: "li"}, GitHubRepoInfo: nil}
 
-	if info.Name() != nil {
-		t.Fatalf("expected nil Name")
+	assert.Nil(t, info.Name())
+	assert.Nil(t, info.RepositoryURL())
+	assert.Nil(t, info.Watchers())
+	assert.Nil(t, info.Stars())
+	assert.Nil(t, info.Forks())
+	assert.Nil(t, info.OpenIssues())
+	assert.Nil(t, info.LastCommitDate())
+	assert.Nil(t, info.GithubRepoURL())
+	assert.Nil(t, info.Archived())
+	assert.Nil(t, info.Score())
+
+	if info.Skip() == nil {
+		t.Fatalf("skip pointer is nil")
 	}
-	if info.RepositoryURL() != nil {
-		t.Fatalf("expected nil RepositoryURL")
-	}
-	if info.Watchers() != nil {
-		t.Fatalf("expected nil Watchers")
-	}
-	if info.Stars() != nil {
-		t.Fatalf("expected nil Stars")
-	}
-	if info.Forks() != nil {
-		t.Fatalf("expected nil Forks")
-	}
-	if info.OpenIssues() != nil {
-		t.Fatalf("expected nil OpenIssues")
-	}
-	if info.LastCommitDate() != nil {
-		t.Fatalf("expected nil LastCommitDate")
-	}
-	if info.GithubRepoURL() != nil {
-		t.Fatalf("expected nil GithubRepoURL")
-	}
-	if info.Archived() != nil {
-		t.Fatalf("expected nil Archived")
-	}
-	if info.Score() != nil {
-		t.Fatalf("expected nil Score")
-	}
-	if info.Skip() == nil || *info.Skip() != true {
-		t.Fatalf("expected Skip=true from LibInfo")
-	}
-	if v := info.SkipReason(); v == nil || *v != "li" {
-		t.Fatalf("expected SkipReason from LibInfo")
+
+	assert.True(t, *info.Skip())
+
+	if v := info.SkipReason(); v == nil {
+		t.Fatalf("skip reason nil")
+	} else {
+		assert.Equal(t, "li", *v)
 	}
 }
 
@@ -64,44 +53,31 @@ func TestAnalyzedLibInfo_WithValues_AllGetters(t *testing.T) {
 		Archived:       true,
 		Score:          42,
 	}
-	info := AnalyzedLibInfo{LibInfo: &lib, GitHubRepoInfo: &repo}
+	info := presenter.AnalyzedLibInfo{LibInfo: &lib, GitHubRepoInfo: &repo}
 
-	if v := info.Name(); v == nil || *v != "lib" {
-		t.Fatalf("unexpected Name")
-	}
-	if v := info.RepositoryURL(); v == nil || *v != "https://github.com/x/y" {
-		t.Fatalf("unexpected RepositoryURL")
-	}
-	if v := info.Watchers(); v == nil || *v != 1 {
-		t.Fatalf("unexpected Watchers")
-	}
-	if v := info.Stars(); v == nil || *v != 2 {
-		t.Fatalf("unexpected Stars")
-	}
-	if v := info.Forks(); v == nil || *v != 3 {
-		t.Fatalf("unexpected Forks")
-	}
-	if v := info.OpenIssues(); v == nil || *v != 4 {
-		t.Fatalf("unexpected OpenIssues")
-	}
-	if v := info.LastCommitDate(); v == nil || *v != "2024-01-01T00:00:00Z" {
-		t.Fatalf("unexpected LastCommitDate")
-	}
-	if v := info.GithubRepoURL(); v == nil || *v != "https://github.com/x/y" {
-		t.Fatalf("unexpected GithubRepoURL")
-	}
-	if v := info.Archived(); v == nil || *v != true {
-		t.Fatalf("unexpected Archived")
-	}
-	if v := info.Score(); v == nil || *v != 42 {
-		t.Fatalf("unexpected Score")
-	}
-	if v := info.Skip(); v == nil || *v != false {
-		t.Fatalf("unexpected Skip false")
-	}
-	if info.SkipReason() != nil {
-		t.Fatalf("expected nil SkipReason")
-	}
+	assert.NotNil(t, info.Name())
+	assert.Equal(t, "lib", *info.Name())
+	assert.NotNil(t, info.RepositoryURL())
+	assert.Equal(t, "https://github.com/x/y", *info.RepositoryURL())
+	assert.NotNil(t, info.Watchers())
+	assert.Equal(t, 1, *info.Watchers())
+	assert.NotNil(t, info.Stars())
+	assert.Equal(t, 2, *info.Stars())
+	assert.NotNil(t, info.Forks())
+	assert.Equal(t, 3, *info.Forks())
+	assert.NotNil(t, info.OpenIssues())
+	assert.Equal(t, 4, *info.OpenIssues())
+	assert.NotNil(t, info.LastCommitDate())
+	assert.Equal(t, "2024-01-01T00:00:00Z", *info.LastCommitDate())
+	assert.NotNil(t, info.GithubRepoURL())
+	assert.Equal(t, "https://github.com/x/y", *info.GithubRepoURL())
+	assert.NotNil(t, info.Archived())
+	assert.True(t, *info.Archived())
+	assert.NotNil(t, info.Score())
+	assert.Equal(t, 42, *info.Score())
+	assert.NotNil(t, info.Skip())
+	assert.False(t, *info.Skip())
+	assert.Nil(t, info.SkipReason())
 }
 
 func TestAnalyzedLibInfo_SkipReason_FromLibInfo(t *testing.T) {
@@ -109,13 +85,18 @@ func TestAnalyzedLibInfo_SkipReason_FromLibInfo(t *testing.T) {
 
 	lib := parser.LibInfo{Name: "lib3", Skip: true, SkipReason: "reason"}
 	repo := analyzer.GitHubRepoInfo{Score: 1}
-	info := AnalyzedLibInfo{LibInfo: &lib, GitHubRepoInfo: &repo}
+	info := presenter.AnalyzedLibInfo{LibInfo: &lib, GitHubRepoInfo: &repo}
 
-	if v := info.Skip(); v == nil || *v != true {
-		t.Fatalf("expected Skip true from LibInfo")
+	if v := info.Skip(); v == nil {
+		t.Fatalf("skip nil")
+	} else {
+		assert.True(t, *v)
 	}
-	if v := info.SkipReason(); v == nil || *v != "reason" {
-		t.Fatalf("expected reason")
+
+	if v := info.SkipReason(); v == nil {
+		t.Fatalf("reason nil")
+	} else {
+		assert.Equal(t, "reason", *v)
 	}
 }
 
@@ -124,12 +105,17 @@ func TestAnalyzedLibInfo_SkipReason_FromRepoInfo(t *testing.T) {
 
 	lib := parser.LibInfo{Name: "lib"}
 	repo := analyzer.GitHubRepoInfo{Skip: true, SkipReason: "repo-reason"}
-	info := AnalyzedLibInfo{LibInfo: &lib, GitHubRepoInfo: &repo}
+	info := presenter.AnalyzedLibInfo{LibInfo: &lib, GitHubRepoInfo: &repo}
 
-	if v := info.Skip(); v == nil || *v != true {
-		t.Fatalf("expected Skip true from RepoInfo")
+	if v := info.Skip(); v == nil {
+		t.Fatalf("skip nil")
+	} else {
+		assert.True(t, *v)
 	}
-	if v := info.SkipReason(); v == nil || *v != "repo-reason" {
-		t.Fatalf("expected repo-reason")
+
+	if v := info.SkipReason(); v == nil {
+		t.Fatalf("reason nil")
+	} else {
+		assert.Equal(t, "repo-reason", *v)
 	}
 }

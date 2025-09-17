@@ -6,6 +6,7 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
+
 	"github.com/uzumaki-inc/stay_or_go/parser"
 )
 
@@ -48,8 +49,8 @@ gem 'puma'`
 	assert.False(t, libInfoList[2].Skip)
 }
 
+//nolint:paralleltest // Uses httpmock which doesn't support parallel tests
 func TestRubyParser_GetRepositoryURL(t *testing.T) {
-	t.Parallel()
 	// Mock HTTP requests for rubygems API
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()

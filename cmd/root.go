@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
 	"github.com/uzumaki-inc/stay_or_go/analyzer"
 	"github.com/uzumaki-inc/stay_or_go/parser"
 	"github.com/uzumaki-inc/stay_or_go/presenter"
@@ -188,6 +189,11 @@ func run(language, inFile, format, token, config string, _ bool, deps Deps) erro
 	presenterInst.Display()
 
 	return nil
+}
+
+// GetRootCmd returns the root command for testing purposes.
+func GetRootCmd() *cobra.Command {
+	return rootCmd
 }
 
 func Execute() {

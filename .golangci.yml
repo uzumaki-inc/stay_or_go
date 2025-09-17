@@ -1,3 +1,8 @@
+# golangci-lint configuration file
+# See: https://golangci-lint.run/usage/configuration/
+
+version: "2"
+
 run:
   timeout: 5m
 
@@ -10,13 +15,18 @@ linters:
     - forbidigo # CLIツールでfmt.Printが使えないと困るため
     - gochecknoinits # initメソッドを有効化する
     - depguard # cmdからimportできなくなるため
-    - gochecknoglobals # globalな変数の利用を許可する(フラグで利用するため フラグで利用する変数はマジックコメントで退避してもいいかも
+    - gochecknoglobals # globalな変数の利用を許可する(フラグで利用するため)
     - exportloopref # deprecated
     - ireturn # メソッドの返り値にinterfaceを返す必要があるため
     # - gofumpt # wslのルールとバッティングするのでOff
     - exhaustruct # 構造体初期化時にすべて埋めるのは手間なので一時的にOff
 
 linters-settings:
+  gci:
+    sections:
+      - standard
+      - prefix(github.com/uzumaki-inc/stay_or_go)
+      - default
   tagliatelle:
     case:
       use-field-name: true
@@ -26,32 +36,5 @@ linters-settings:
     ignore-names:
       - err
       - ok
+
 issues:
-  exclude-rules:
-    # disable funlen for all _test.go files
-    - path: _test.go
-      linters:
-        - funlen
-    # Soften style checks for tests (Option A). Safe to revert later for Option B.
-    - path: _test.go
-      linters:
-        - cyclop
-        - gofumpt
-        - lll
-        - wsl
-        - varnamelen
-        - testpackage
-        - testifylint
-        - paralleltest
-        - dupword
-        - gocyclo
-        - gocognit
-        - errorlint
-        - revive
-        - gosec
-        - nlreturn
-        - nolintlint
-    # Temporary exception: gci noisy for this single file after package move
-    - path: analyzer/parameter_weights_test.go
-      linters:
-        - gci

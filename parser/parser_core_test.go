@@ -1,36 +1,39 @@
 package parser_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/uzumaki-inc/stay_or_go/parser"
 )
 
 func TestSelectParser_ReturnsCorrectTypes(t *testing.T) {
 	t.Parallel()
 
-	p, err := parser.SelectParser("go")
-	assert.NoError(t, err)
-	if _, ok := p.(parser.GoParser); !ok {
-		t.Fatalf("expected GoParser, got %T", p)
+	goParser, err := parser.SelectParser("go")
+	require.NoError(t, err)
+
+	if _, ok := goParser.(parser.GoParser); !ok {
+		t.Fatalf("expected GoParser, got %T", goParser)
 	}
 
-	p, err = parser.SelectParser("ruby")
-	assert.NoError(t, err)
-	if _, ok := p.(parser.RubyParser); !ok {
-		t.Fatalf("expected RubyParser, got %T", p)
+	rubyParser, err := parser.SelectParser("ruby")
+	require.NoError(t, err)
+
+	if _, ok := rubyParser.(parser.RubyParser); !ok {
+		t.Fatalf("expected RubyParser, got %T", rubyParser)
 	}
 }
 
 func TestSelectParser_UnsupportedLanguage(t *testing.T) {
 	t.Parallel()
 
-	p, err := parser.SelectParser("python")
-	assert.Nil(t, p)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, parser.ErrUnsupportedLanguage))
+	pythonParser, err := parser.SelectParser("python")
+	assert.Nil(t, pythonParser)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, parser.ErrUnsupportedLanguage)
 }
 
 func TestNewLibInfo_DefaultsAndOptions(t *testing.T) {

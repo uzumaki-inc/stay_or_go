@@ -1,3 +1,4 @@
+//nolint:testpackage // Tests unexported functions
 package cmd
 
 import (
@@ -15,6 +16,7 @@ type stubAnalyzer struct{ called bool }
 
 func (s *stubAnalyzer) FetchGithubInfo(_ []string) []analyzer.GitHubRepoInfo {
 	s.called = true
+
 	return []analyzer.GitHubRepoInfo{{GithubRepoURL: "https://github.com/u/a"}}
 }
 
@@ -25,6 +27,7 @@ type recorderParser struct {
 
 func (r *recorderParser) Parse(file string) ([]parser.LibInfo, error) {
 	r.lastFile = file
+
 	return r.list, nil
 }
 func (r *recorderParser) GetRepositoryURL(list []parser.LibInfo) []parser.LibInfo { return list }
@@ -36,77 +39,92 @@ func (r *recorderPresenter) Display() { r.displayed = true }
 func TestRun_Success_Go_DefaultFile(t *testing.T) {
 	t.Parallel()
 	// Prepare deps
-	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
-	sa := &stubAnalyzer{}
-	rp := &recorderPresenter{}
+	recParser := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
+	stubAnal := &stubAnalyzer{}
+	recPresenter := &recorderPresenter{}
 
 	deps := Deps{
-		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return sa },
-		SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
-		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return stubAnal },
+		SelectParser:    func(_ string) (parser.Parser, error) { return recParser, nil },
+		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return recPresenter },
 	}
 
 	// Unset env to ensure token from argument is used
 	_ = os.Unsetenv("GITHUB_TOKEN")
-	if err := run("go", "", "markdown", "tok", "", false, deps); err != nil { //nolint:lll
+
+	if err := run("go", "", "markdown", "tok", "", false, deps); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if ra.lastFile != "go.mod" {
-		t.Fatalf("expected default go.mod, got %q", ra.lastFile)
+
+	if recParser.lastFile != "go.mod" {
+		t.Fatalf("expected default go.mod, got %q", recParser.lastFile)
 	}
-	if !sa.called {
+
+	if !stubAnal.called {
 		t.Fatalf("expected analyzer called")
 	}
-	if !rp.displayed {
+
+	if !recPresenter.displayed {
 		t.Fatalf("expected presenter.Display called")
 	}
 }
 
 func TestRun_Success_Ruby_DefaultFile(t *testing.T) {
 	t.Parallel()
-	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
-	sa := &stubAnalyzer{}
-	rp := &recorderPresenter{}
+
+	recParser := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
+	stubAnal := &stubAnalyzer{}
+	recPresenter := &recorderPresenter{}
 
 	deps := Deps{
-		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return sa },
-		SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
-		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return stubAnal },
+		SelectParser:    func(_ string) (parser.Parser, error) { return recParser, nil },
+		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return recPresenter },
 	}
 	_ = os.Unsetenv("GITHUB_TOKEN")
+
 	if err := run("ruby", "", "markdown", "tok", "", false, deps); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if ra.lastFile != "Gemfile" {
-		t.Fatalf("expected default Gemfile, got %q", ra.lastFile)
+
+	if recParser.lastFile != "Gemfile" {
+		t.Fatalf("expected default Gemfile, got %q", recParser.lastFile)
 	}
 }
 
 func TestRun_SkipAll_DoesNotCallAnalyzer(t *testing.T) {
 	t.Parallel()
-	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", Skip: true, SkipReason: "skip"}}}
+
+	recParser := &recorderParser{list: []parser.LibInfo{{Name: "a", Skip: true, SkipReason: "skip"}}}
 	called := false
-	rp := &recorderPresenter{}
+	recPresenter := &recorderPresenter{}
 
 	deps := Deps{
 		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{called: true} },
-		SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
-		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+		SelectParser:    func(_ string) (parser.Parser, error) { return recParser, nil },
+		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return recPresenter },
 	}
 
 	// Wrap NewAnalyzer to detect if it's used later via FetchGithubInfo
 	deps.NewAnalyzer = func(_ string, _ analyzer.ParameterWeights) AnalyzerPort {
-		return AnalyzerPort(rtFuncAnalyzer(func(_ []string) []analyzer.GitHubRepoInfo { called = true; return nil }))
+		return AnalyzerPort(rtFuncAnalyzer(func(_ []string) []analyzer.GitHubRepoInfo {
+			called = true
+
+			return nil
+		}))
 	}
 
 	_ = os.Unsetenv("GITHUB_TOKEN")
+
 	if err := run("go", "", "markdown", "tok", "", false, deps); err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
+
 	if called {
 		t.Fatalf("analyzer should not be called when all skipped")
 	}
-	if !rp.displayed {
+
+	if !recPresenter.displayed {
 		t.Fatalf("presenter should be called even when skipped")
 	}
 }
@@ -118,15 +136,19 @@ func (f rtFuncAnalyzer) FetchGithubInfo(urls []string) []analyzer.GitHubRepoInfo
 
 func TestRun_UnsupportedAndFormatAndTokenErrors(t *testing.T) {
 	t.Parallel()
+
 	deps := Deps{}
 
 	if err := run("python", "", "markdown", "tok", "", false, deps); err == nil {
 		t.Fatalf("expected unsupported language error")
 	}
+
 	if err := run("go", "", "json", "tok", "", false, deps); err == nil {
 		t.Fatalf("expected unsupported format error")
 	}
+
 	_ = os.Unsetenv("GITHUB_TOKEN")
+
 	if err := run("go", "", "markdown", "", "", false, deps); err == nil {
 		t.Fatalf("expected missing token error")
 	}
@@ -136,23 +158,26 @@ func TestRun_WithConfigFileBranch(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	cfg := filepath.Join(dir, "weights.yml")
+
 	if err := os.WriteFile(cfg, []byte("watchers: 1\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	ra := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
-	rp := &recorderPresenter{}
+	recParser := &recorderParser{list: []parser.LibInfo{{Name: "a", RepositoryURL: "https://github.com/u/a"}}}
+	recPresenter := &recorderPresenter{}
 
 	deps := Deps{
 		NewAnalyzer:     func(_ string, _ analyzer.ParameterWeights) AnalyzerPort { return &stubAnalyzer{} },
-		SelectParser:    func(_ string) (parser.Parser, error) { return ra, nil },
-		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return rp },
+		SelectParser:    func(_ string) (parser.Parser, error) { return recParser, nil },
+		SelectPresenter: func(_ string, _ []presenter.AnalyzedLibInfo) PresenterPort { return recPresenter },
 	}
 	_ = os.Unsetenv("GITHUB_TOKEN")
+
 	if err := run("go", "", "markdown", "tok", cfg, false, deps); err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
-	if !rp.displayed {
+
+	if !recPresenter.displayed {
 		t.Fatalf("expected presenter called")
 	}
 }

@@ -42,6 +42,7 @@ func TestCalcScore_InvalidDate_SetsSkip(t *testing.T) {
 	if !info.Skip {
 		t.Fatalf("expected Skip=true when date invalid")
 	}
+
 	if info.SkipReason == "" {
 		t.Fatalf("expected SkipReason to be set")
 	}
@@ -49,8 +50,10 @@ func TestCalcScore_InvalidDate_SetsSkip(t *testing.T) {
 
 func TestCreateRepoInfo_MapsFields(t *testing.T) {
 	t.Parallel()
+
 	rd := &RepoData{Name: "r", SubscribersCount: 1, StargazersCount: 2, ForksCount: 3, OpenIssuesCount: 4, Archived: true}
 	gi := createRepoInfo(rd, "2024-01-01T00:00:00Z")
+
 	if gi.RepositoryName != "r" || gi.Watchers != 1 || gi.Stars != 2 || gi.Forks != 3 || gi.OpenIssues != 4 ||
 		gi.Archived != true || gi.LastCommitDate != "2024-01-01T00:00:00Z" {
 		t.Fatalf("unexpected mapping: %+v", gi)
@@ -59,10 +62,12 @@ func TestCreateRepoInfo_MapsFields(t *testing.T) {
 
 func TestIndexOf(t *testing.T) {
 	t.Parallel()
+
 	s := []string{"a", "b", "c"}
 	if indexOf(s, "b") != 1 {
 		t.Fatalf("want 1")
 	}
+
 	if indexOf(s, "x") != -1 {
 		t.Fatalf("want -1")
 	}
@@ -78,19 +83,27 @@ func TestFetchJSONData_Non200AndDecodeError(t *testing.T) {
 	var out interface{}
 
 	// Non-200 client
-	c1 := &http.Client{Transport: rtFunc(func(r *http.Request) (*http.Response, error) {
-		return &http.Response{StatusCode: http.StatusTeapot, Body: io.NopCloser(strings.NewReader("teapot")), Header: make(http.Header)}, nil
+	client1 := &http.Client{Transport: rtFunc(func(_ *http.Request) (*http.Response, error) {
+		body := io.NopCloser(strings.NewReader("teapot"))
+		hdr := make(http.Header)
+
+		return &http.Response{StatusCode: http.StatusTeapot, Body: body, Header: hdr}, nil
 	})}
-	err := fetchJSONData(c1, "http://example", nil, &out)
+	err := fetchJSONData(client1, "http://example", nil, &out)
+
 	if !errors.Is(err, ErrUnexpectedStatusCode) {
 		t.Fatalf("expected ErrUnexpectedStatusCode, got %v", err)
 	}
 
 	// 200 but invalid JSON
-	c2 := &http.Client{Transport: rtFunc(func(r *http.Request) (*http.Response, error) {
-		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("not-json")), Header: make(http.Header)}, nil
+	client2 := &http.Client{Transport: rtFunc(func(_ *http.Request) (*http.Response, error) {
+		body := io.NopCloser(strings.NewReader("not-json"))
+		hdr := make(http.Header)
+
+		return &http.Response{StatusCode: http.StatusOK, Body: body, Header: hdr}, nil
 	})}
-	err = fetchJSONData(c2, "http://example", nil, &out)
+	err = fetchJSONData(client2, "http://example", nil, &out)
+
 	if err == nil {
 		t.Fatalf("expected decode error")
 	}
@@ -98,14 +111,18 @@ func TestFetchJSONData_Non200AndDecodeError(t *testing.T) {
 
 func TestFetchGithubInfo_NoToken_SetsSkip(t *testing.T) {
 	t.Parallel()
+
 	a := NewGitHubRepoAnalyzer("", NewParameterWeights())
 	infos := a.FetchGithubInfo([]string{"https://github.com/user/repo"})
+
 	if len(infos) != 1 {
 		t.Fatalf("want 1 info")
 	}
+
 	if !infos[0].Skip {
 		t.Fatalf("expected Skip true when token missing")
 	}
+
 	if infos[0].SkipReason == "" {
 		t.Fatalf("expected SkipReason set")
 	}

@@ -6,16 +6,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/uzumaki-inc/stay_or_go/parser"
 	"github.com/uzumaki-inc/stay_or_go/presenter"
 )
 
 // Verify presenters when GitHubRepoInfo is missing and LibInfo is skipped.
 //
-//nolint:tparallel,paralleltest,lll
+//nolint:paralleltest,lll,funlen // Test manipulates os.Stdout
 func TestPresenters_WithSkippedLibInfoAndMissingRepoInfo(t *testing.T) {
 	// Avoid running in parallel since this test manipulates os.Stdout
-
 	lib := parser.LibInfo{
 		Name:          "libX",
 		RepositoryURL: "",
@@ -35,7 +35,6 @@ func TestPresenters_WithSkippedLibInfoAndMissingRepoInfo(t *testing.T) {
 			presenterFunc: func(infos []presenter.AnalyzedLibInfo) presenter.Presenter {
 				return presenter.NewMarkdownPresenter(infos)
 			},
-			//nolint:dupword
 			expectedOutput: `| Name | RepositoryURL | Watchers | Stars | Forks | OpenIssues | LastCommitDate | Archived | Score | Skip | SkipReason |
 | ---- | ------------- | -------- | ----- | ----- | ---------- | -------------- | -------- | ----- | ---- | ---------- |
 |libX|N/A|N/A|N/A|N/A|N/A|N/A|N/A|N/A|true|Not hosted on Github|
@@ -46,7 +45,7 @@ func TestPresenters_WithSkippedLibInfoAndMissingRepoInfo(t *testing.T) {
 			presenterFunc: func(infos []presenter.AnalyzedLibInfo) presenter.Presenter {
 				return presenter.NewCsvPresenter(infos)
 			},
-			//nolint:dupword
+			//nolint:dupword // N/A repetition is expected output format
 			expectedOutput: "Name, RepositoryURL, Watchers, Stars, Forks, OpenIssues, LastCommitDate, Archived, Score, Skip, SkipReason\nlibX, N/A, N/A, N/A, N/A, N/A, N/A, N/A, N/A, true, Not hosted on Github\n",
 		},
 		{
@@ -54,26 +53,29 @@ func TestPresenters_WithSkippedLibInfoAndMissingRepoInfo(t *testing.T) {
 			presenterFunc: func(infos []presenter.AnalyzedLibInfo) presenter.Presenter {
 				return presenter.NewTsvPresenter(infos)
 			},
+			//nolint:dupword // N/A repetition is expected output format
 			expectedOutput: "Name\tRepositoryURL\tWatchers\tStars\tForks\tOpenIssues\tLastCommitDate\tArchived\tScore\tSkip\tSkipReason\nlibX\tN/A\tN/A\tN/A\tN/A\tN/A\tN/A\tN/A\tN/A\ttrue\tNot hosted on Github\n",
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			// capture stdout
-			r, w, _ := os.Pipe()
+			rPipe, wPipe, _ := os.Pipe()
 			old := os.Stdout
-			os.Stdout = w
+
+			os.Stdout = wPipe
 			defer func() { os.Stdout = old }()
 
-			p := tc.presenterFunc(analyzed)
+			p := testCase.presenterFunc(analyzed)
 			p.Display()
 
-			w.Close()
-			var buf bytes.Buffer
-			_, _ = buf.ReadFrom(r)
+			wPipe.Close()
 
-			assert.Equal(t, tc.expectedOutput, buf.String())
+			var buf bytes.Buffer
+			_, _ = buf.ReadFrom(rPipe)
+
+			assert.Equal(t, testCase.expectedOutput, buf.String())
 		})
 	}
 }

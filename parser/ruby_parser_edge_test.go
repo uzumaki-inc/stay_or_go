@@ -1,3 +1,4 @@
+//nolint:gofumpt // WSL formatting conflicts with gofumpt
 package parser_test
 
 import (
@@ -6,9 +7,11 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
+
 	"github.com/uzumaki-inc/stay_or_go/parser"
 )
 
+//nolint:paralleltest // Uses file I/O which may conflict in parallel
 func TestRubyParser_Parse_SkipsGemsInBlocks(t *testing.T) {
 	content := `source "https://rubygems.org" do
   gem 'rails'
@@ -25,18 +28,22 @@ end
 gem 'puma'
 `
 
-	f, err := os.CreateTemp("", "Gemfile-*.tmp")
+	tmpFile, err := os.CreateTemp("", "Gemfile-*.tmp")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(f.Name())
-	if _, err := f.WriteString(content); err != nil {
+
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.WriteString(content); err != nil {
 		t.Fatal(err)
 	}
-	_ = f.Close()
+
+	_ = tmpFile.Close()
 
 	p := parser.RubyParser{}
-	libs, err := p.Parse(f.Name())
+	libs, err := p.Parse(tmpFile.Name())
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,11 +69,10 @@ gem 'puma'
 	assert.False(t, libs[3].Skip)
 }
 
+//nolint:paralleltest // Uses httpmock which doesn't support parallel tests
 func TestRubyParser_GetRepositoryURL_NonGitHubHomepageSkips(t *testing.T) {
 	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
 
-	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	// homepage_uri points to non-GitHub → should skip

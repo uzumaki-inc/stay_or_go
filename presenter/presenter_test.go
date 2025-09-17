@@ -6,15 +6,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/uzumaki-inc/stay_or_go/analyzer"
 	"github.com/uzumaki-inc/stay_or_go/parser"
 	"github.com/uzumaki-inc/stay_or_go/presenter"
 )
 
 // Disable parallel testing to test standard output
+//
+//nolint:paralleltest,funlen // Test manipulates os.Stdout, complex test cases
 func TestDisplay(t *testing.T) {
 	// Avoid running in parallel since this test manipulates os.Stdout
-
 	testCases := []struct {
 		name           string
 		presenterFunc  func([]presenter.AnalyzedLibInfo) presenter.Presenter

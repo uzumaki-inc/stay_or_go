@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(golangci-lint run:*)",
+      "Bash(awk:*)",
+      "Bash(go test:*)",
+      "Bash(gofumpt:*)",
+      "Bash(go install:*)",
+      "Bash(~/go/bin/gofumpt -w analyzer/parameter_weights_test.go)",
+      "Bash(gci write:*)",
+      "Bash(cat:*)",
+      "Bash(go run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

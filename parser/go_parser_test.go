@@ -1,3 +1,4 @@
+//nolint:gofumpt // WSL formatting conflicts with gofumpt
 package parser_test
 
 import (
@@ -6,9 +7,11 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
+
 	"github.com/uzumaki-inc/stay_or_go/parser"
 )
 
+//nolint:funlen // Complex test logic requires many assertions
 func TestGoParser_Parse_RequireReplaceAndIndirect(t *testing.T) {
 	t.Parallel()
 
@@ -27,18 +30,22 @@ replace (
 )
 `
 
-	f, err := os.CreateTemp("", "go.mod-*.tmp")
+	tmpFile, err := os.CreateTemp("", "go.mod-*.tmp")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(f.Name())
-	if _, err := f.WriteString(content); err != nil {
+
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.WriteString(content); err != nil {
 		t.Fatal(err)
 	}
-	_ = f.Close()
+
+	_ = tmpFile.Close()
 
 	p := parser.GoParser{}
-	libs, err := p.Parse(f.Name())
+	libs, err := p.Parse(tmpFile.Name())
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,6 +60,7 @@ replace (
 				return &libs[i]
 			}
 		}
+
 		return nil
 	}
 
@@ -78,6 +86,7 @@ replace (
 	assert.Equal(t, "replaced module", replaced.SkipReason)
 }
 
+//nolint:paralleltest,funlen // Uses httpmock which doesn't support parallel tests, complex setup
 func TestGoParser_GetRepositoryURL_SetsURLAndSkips(t *testing.T) {
 	// Prepare initial lib list as if parsed
 	libs := []parser.LibInfo{
@@ -125,6 +134,7 @@ func TestGoParser_GetRepositoryURL_SetsURLAndSkips(t *testing.T) {
 				return &updated[i]
 			}
 		}
+
 		return nil
 	}
 
