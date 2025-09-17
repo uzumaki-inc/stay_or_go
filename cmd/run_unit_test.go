@@ -52,7 +52,8 @@ func TestRun_Success_Go_DefaultFile(t *testing.T) {
 	// Unset env to ensure token from argument is used
 	_ = os.Unsetenv("GITHUB_TOKEN")
 
-	if err := run("go", "", "markdown", "tok", "", false, deps); err != nil {
+	err := run("go", "", "markdown", "tok", "", false, deps)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -83,7 +84,8 @@ func TestRun_Success_Ruby_DefaultFile(t *testing.T) {
 	}
 	_ = os.Unsetenv("GITHUB_TOKEN")
 
-	if err := run("ruby", "", "markdown", "tok", "", false, deps); err != nil {
+	err := run("ruby", "", "markdown", "tok", "", false, deps)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -116,7 +118,8 @@ func TestRun_SkipAll_DoesNotCallAnalyzer(t *testing.T) {
 
 	_ = os.Unsetenv("GITHUB_TOKEN")
 
-	if err := run("go", "", "markdown", "tok", "", false, deps); err != nil {
+	err := run("go", "", "markdown", "tok", "", false, deps)
+	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
 
@@ -139,17 +142,20 @@ func TestRun_UnsupportedAndFormatAndTokenErrors(t *testing.T) {
 
 	deps := Deps{}
 
-	if err := run("python", "", "markdown", "tok", "", false, deps); err == nil {
+	err := run("python", "", "markdown", "tok", "", false, deps)
+	if err == nil {
 		t.Fatalf("expected unsupported language error")
 	}
 
-	if err := run("go", "", "json", "tok", "", false, deps); err == nil {
+	err = run("go", "", "json", "tok", "", false, deps)
+	if err == nil {
 		t.Fatalf("expected unsupported format error")
 	}
 
 	_ = os.Unsetenv("GITHUB_TOKEN")
 
-	if err := run("go", "", "markdown", "", "", false, deps); err == nil {
+	err = run("go", "", "markdown", "", "", false, deps)
+	if err == nil {
 		t.Fatalf("expected missing token error")
 	}
 }
@@ -159,7 +165,8 @@ func TestRun_WithConfigFileBranch(t *testing.T) {
 	dir := t.TempDir()
 	cfg := filepath.Join(dir, "weights.yml")
 
-	if err := os.WriteFile(cfg, []byte("watchers: 1\n"), 0o600); err != nil {
+	err := os.WriteFile(cfg, []byte("watchers: 1\n"), 0o600)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -173,7 +180,8 @@ func TestRun_WithConfigFileBranch(t *testing.T) {
 	}
 	_ = os.Unsetenv("GITHUB_TOKEN")
 
-	if err := run("go", "", "markdown", "tok", cfg, false, deps); err != nil {
+	err = run("go", "", "markdown", "tok", cfg, false, deps)
+	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
 

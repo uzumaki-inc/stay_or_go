@@ -43,9 +43,9 @@ func TestNewLibInfo_DefaultsAndOptions(t *testing.T) {
 	li := parser.NewLibInfo("libX")
 	assert.Equal(t, "libX", li.Name)
 	assert.False(t, li.Skip)
-	assert.Equal(t, "", li.SkipReason)
+	assert.Empty(t, li.SkipReason)
 	assert.Nil(t, li.Others)
-	assert.Equal(t, "", li.RepositoryURL)
+	assert.Empty(t, li.RepositoryURL)
 
 	// With options
 	li2 := parser.NewLibInfo(

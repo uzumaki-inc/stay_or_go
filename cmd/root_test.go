@@ -2,6 +2,7 @@ package cmd_test
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,7 +35,7 @@ func TestRootCommand_ErrorScenarios(t *testing.T) {
 			capPath := filepath.Join(dir, "stderr.txt")
 
 			//nolint:gosec // launching test subprocess intentionally
-			cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_CobraRoot")
+			cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestHelperProcess_CobraRoot")
 			cmd.Env = append(os.Environ(),
 				"GO_WANT_HELPER_PROCESS_COBRA=1",
 				"COBRA_SCENARIO="+testCase.scenario,
@@ -61,7 +62,7 @@ func TestRootCommand_ErrorScenarios(t *testing.T) {
 
 // Test helper that runs in a subprocess to exercise cobra command paths that call os.Exit.
 //
-//nolint:paralleltest,revive,funlen // Test helper process for subprocess testing, t unused but required
+//nolint:paralleltest,funlen // Test helper process for subprocess testing, t unused but required
 func TestHelperProcess_CobraRoot(t *testing.T) {
 	if os.Getenv("GO_WANT_HELPER_PROCESS_COBRA") != "1" {
 		return
@@ -72,6 +73,7 @@ func TestHelperProcess_CobraRoot(t *testing.T) {
 	f, _ := os.Create(capPath)
 
 	defer f.Close()
+
 	os.Stderr = f
 
 	scenario := os.Getenv("COBRA_SCENARIO")
@@ -86,7 +88,7 @@ replace (
 )`
 	gemfile := `source 'https://rubygems.org'
 
-# git指定でSkipさせる
+# git specified to be skipped
 
 gem 'nokogiri', git: 'https://example.com/sparklemotion/nokogiri.git'
 `
@@ -96,35 +98,35 @@ gem 'nokogiri', git: 'https://example.com/sparklemotion/nokogiri.git'
 		"BADFORMAT":   func() { cmd.GetRootCmd().SetArgs([]string{"go", "-f", "json", "-g", "dummy"}) },
 		"NOTOKEN":     func() { _ = os.Unsetenv("GITHUB_TOKEN"); cmd.GetRootCmd().SetArgs([]string{"go"}) },
 		"GO_DEFAULT": func() {
-			dir, _ := os.MkdirTemp("", "gomod-default-*")
+			dir := t.TempDir()
 			_ = os.WriteFile(dir+"/go.mod", []byte(goMod), 0o600)
-			_ = os.Chdir(dir)
-			_ = os.Setenv("GITHUB_TOKEN", "dummy")
+			t.Chdir(dir)
+			t.Setenv("GITHUB_TOKEN", "dummy")
 			cmd.GetRootCmd().SetArgs([]string{"go"})
 		},
 		"RUBY_DEFAULT": func() {
-			dir, _ := os.MkdirTemp("", "gem-default-*")
+			dir := t.TempDir()
 			_ = os.WriteFile(dir+"/Gemfile", []byte(gemfile), 0o600)
-			_ = os.Chdir(dir)
-			_ = os.Setenv("GITHUB_TOKEN", "dummy")
+			t.Chdir(dir)
+			t.Setenv("GITHUB_TOKEN", "dummy")
 			cmd.GetRootCmd().SetArgs([]string{"ruby"})
 		},
 		"GO_VERBOSE": func() {
-			dir, _ := os.MkdirTemp("", "gomod-verbose-*")
+			dir := t.TempDir()
 			_ = os.WriteFile(dir+"/go.mod", []byte(goMod), 0o600)
-			_ = os.Chdir(dir)
-			_ = os.Setenv("GITHUB_TOKEN", "dummy")
+			t.Chdir(dir)
+			t.Setenv("GITHUB_TOKEN", "dummy")
 			cmd.GetRootCmd().SetArgs([]string{"go", "-v"})
 		},
 		"GO_CSV": func() {
-			dir, _ := os.MkdirTemp("", "gomod-csv-*")
+			dir := t.TempDir()
 			_ = os.WriteFile(dir+"/go.mod", []byte(goMod), 0o600)
-			_ = os.Chdir(dir)
-			_ = os.Setenv("GITHUB_TOKEN", "dummy")
+			t.Chdir(dir)
+			t.Setenv("GITHUB_TOKEN", "dummy")
 			cmd.GetRootCmd().SetArgs([]string{"go", "-f", "csv"})
 		},
 		"GO_CONFIG": func() {
-			dir, _ := os.MkdirTemp("", "gomod-config-*")
+			dir := t.TempDir()
 			_ = os.WriteFile(dir+"/go.mod", []byte(goMod), 0o600)
 			cfg := dir + "/weights.yml"
 			content := "watestCasehers: 1\n" +
@@ -134,8 +136,8 @@ gem 'nokogiri', git: 'https://example.com/sparklemotion/nokogiri.git'
 				"last_commit_date: -5\n" +
 				"archived: -6\n"
 			_ = os.WriteFile(cfg, []byte(content), 0o600)
-			_ = os.Chdir(dir)
-			_ = os.Setenv("GITHUB_TOKEN", "dummy")
+			t.Chdir(dir)
+			t.Setenv("GITHUB_TOKEN", "dummy")
 			cmd.GetRootCmd().SetArgs([]string{"go", "-c", cfg})
 		},
 	}
@@ -148,6 +150,7 @@ gem 'nokogiri', git: 'https://example.com/sparklemotion/nokogiri.git'
 
 	// Avoid printing to stdout in tests; ensure buffer present
 	var devnull bytes.Buffer
+
 	_ = devnull
 
 	// This will call os.Exit in error paths, terminating subprocess with code 1.
@@ -178,7 +181,7 @@ func TestRootCommand_DefaultInputsAndVerbose(t *testing.T) {
 			capPath := filepath.Join(dir, "stderr.txt")
 
 			//nolint:gosec // launching test subprocess intentionally
-			cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_CobraRoot")
+			cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestHelperProcess_CobraRoot")
 			cmd.Env = append(os.Environ(),
 				"GO_WANT_HELPER_PROCESS_COBRA=1",
 				"COBRA_SCENARIO="+testCase.scenario,

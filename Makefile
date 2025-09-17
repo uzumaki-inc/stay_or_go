@@ -6,9 +6,9 @@ air:
 
 # golangci-lintを実行
 lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint run
 lintFix:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --fix
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint run --fix
 
 # Run tests with coverage and open HTML report
 cover:

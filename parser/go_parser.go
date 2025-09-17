@@ -30,6 +30,35 @@ func (p GoParser) Parse(filePath string) ([]LibInfo, error) {
 	return libInfoList, nil
 }
 
+func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
+	client := &http.Client{}
+
+	for i := range libInfoList {
+		libInfo := &libInfoList[i]
+
+		if libInfo.Skip {
+			continue
+		}
+
+		name := libInfo.Others[0]
+		version := libInfo.Others[1]
+
+		repoURL, err := p.getGitHubRepositoryURL(client, name, version)
+		if err != nil {
+			libInfo.Skip = true
+			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
+
+			utils.StdErrorPrintln("%s does not support libraries hosted outside of Github: %s", name, err)
+
+			continue
+		}
+
+		libInfo.RepositoryURL = repoURL
+	}
+
+	return libInfoList
+}
+
 func (p GoParser) collectReplaceModules(file *os.File) []string {
 	var replaceModules []string
 
@@ -59,7 +88,8 @@ func (p GoParser) collectReplaceModules(file *os.File) []string {
 		}
 	}
 
-	if _, err := file.Seek(0, 0); err != nil { // Reset file pointer for next pass
+	_, err := file.Seek(0, 0) // Reset file pointer for next pass
+	if err != nil {
 		utils.StdErrorPrintln("%v: %v", ErrFailedToResetFilePointer, err)
 		os.Exit(1)
 	}
@@ -108,7 +138,8 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
+	err := scanner.Err()
+	if err != nil {
 		utils.StdErrorPrintln("%v: %v", ErrFailedToScanFile, err)
 		os.Exit(1)
 	}
@@ -124,35 +155,6 @@ func contains(slice []string, item string) bool {
 	}
 
 	return false
-}
-
-func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
-	client := &http.Client{}
-
-	for i := range libInfoList {
-		libInfo := &libInfoList[i]
-
-		if libInfo.Skip {
-			continue
-		}
-
-		name := libInfo.Others[0]
-		version := libInfo.Others[1]
-
-		repoURL, err := p.getGitHubRepositoryURL(client, name, version)
-		if err != nil {
-			libInfo.Skip = true
-			libInfo.SkipReason = "Does not support libraries hosted outside of Github"
-
-			utils.StdErrorPrintln("%s does not support libraries hosted outside of Github: %s", name, err)
-
-			continue
-		}
-
-		libInfo.RepositoryURL = repoURL
-	}
-
-	return libInfoList
 }
 
 type GoRepository struct {

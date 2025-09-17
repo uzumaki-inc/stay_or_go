@@ -17,7 +17,7 @@ func TestRubyParser_Parse(t *testing.T) {
 gem 'nokogiri', git: 'https://self_hosting_git.com/sparklemotion/nokogiri.git'
 gem 'puma'`
 
-	tempFile, err := os.CreateTemp("", "testfile-*.txt")
+	tempFile, err := os.CreateTemp(t.TempDir(), "testfile-*.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestRubyParser_GetRepositoryURL(t *testing.T) {
 	// Assertions
 	assert.Equal(t, "https://github.com/rails/rails", updatedLibInfoList[0].RepositoryURL)
 	assert.Equal(t, "https://github.com/sparklemotion/nokogiri", updatedLibInfoList[1].RepositoryURL)
-	assert.Equal(t, "", updatedLibInfoList[2].RepositoryURL)
+	assert.Empty(t, updatedLibInfoList[2].RepositoryURL)
 	assert.True(t, updatedLibInfoList[2].Skip)
 	assert.Equal(t, "Does not support libraries hosted outside of Github", updatedLibInfoList[2].SkipReason)
 }

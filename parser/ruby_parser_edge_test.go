@@ -1,4 +1,3 @@
-//nolint:gofumpt // WSL formatting conflicts with gofumpt
 package parser_test
 
 import (
@@ -28,22 +27,23 @@ end
 gem 'puma'
 `
 
-	tmpFile, err := os.CreateTemp("", "Gemfile-*.tmp")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "Gemfile-*.tmp")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	defer os.Remove(tmpFile.Name())
 
-	if _, err := tmpFile.WriteString(content); err != nil {
+	_, err = tmpFile.WriteString(content)
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	_ = tmpFile.Close()
 
 	p := parser.RubyParser{}
-	libs, err := p.Parse(tmpFile.Name())
 
+	libs, err := p.Parse(tmpFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,5 +89,5 @@ func TestRubyParser_GetRepositoryURL_NonGitHubHomepageSkips(t *testing.T) {
 
 	assert.True(t, updated[0].Skip)
 	assert.Equal(t, "Does not support libraries hosted outside of Github", updated[0].SkipReason)
-	assert.Equal(t, "", updated[0].RepositoryURL)
+	assert.Empty(t, updated[0].RepositoryURL)
 }

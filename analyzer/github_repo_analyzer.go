@@ -262,7 +262,8 @@ func fetchJSONData(
 		return fmt.Errorf("%w: %d for URL %s", ErrUnexpectedStatusCode, resp.StatusCode, url)
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(result)
+	if err != nil {
 		return fmt.Errorf("failed to decode JSON response for URL %s: %w", url, err)
 	}
 

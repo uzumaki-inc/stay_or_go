@@ -1,6 +1,7 @@
 package analyzer_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -40,7 +41,8 @@ func TestNewParameterWeightsFromConfiFile_LoadsValues(t *testing.T) {
 			"archived: -99999\n",
 	)
 
-	if err := os.WriteFile(path, content, 0o600); err != nil {
+	err := os.WriteFile(path, content, 0o600)
+	if err != nil {
 		t.Fatalf("failed to write temp config: %v", err)
 	}
 
@@ -59,7 +61,7 @@ func TestNewParameterWeightsFromConfiFile_ExitOnMissing(t *testing.T) {
 	t.Parallel()
 
 	//nolint:gosec // launching test subprocess intentionally
-	cmd := exec.Command(os.Args[0], "-test.run=TestHelperProcess_WeightsExit")
+	cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestHelperProcess_WeightsExit")
 	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS_WEIGHTS=1")
 
 	err := cmd.Run()

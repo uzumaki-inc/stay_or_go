@@ -92,7 +92,9 @@ func TestDisplay(t *testing.T) {
 			writePipe.Close()
 
 			var buf bytes.Buffer
-			if _, err := buf.ReadFrom(readPipe); err != nil {
+
+			_, err := buf.ReadFrom(readPipe)
+			if err != nil {
 				t.Fatalf("failed to read from pipe: %v", err)
 			}
 

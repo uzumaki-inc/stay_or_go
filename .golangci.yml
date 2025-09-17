@@ -1,40 +1,55 @@
-# golangci-lint configuration file
-# See: https://golangci-lint.run/usage/configuration/
-
 version: "2"
-
-run:
-  timeout: 5m
-
 linters:
-  enable-all: true
+  default: all
   disable:
-    - gomnd # deprecated
-    - godot # コメントにピリオド必須はいらない
-    - execinquery # deprecated
-    - forbidigo # CLIツールでfmt.Printが使えないと困るため
-    - gochecknoinits # initメソッドを有効化する
-    - depguard # cmdからimportできなくなるため
-    - gochecknoglobals # globalな変数の利用を許可する(フラグで利用するため)
-    - exportloopref # deprecated
-    - ireturn # メソッドの返り値にinterfaceを返す必要があるため
-    # - gofumpt # wslのルールとバッティングするのでOff
-    - exhaustruct # 構造体初期化時にすべて埋めるのは手間なので一時的にOff
-
-linters-settings:
-  gci:
-    sections:
-      - standard
-      - prefix(github.com/uzumaki-inc/stay_or_go)
-      - default
-  tagliatelle:
-    case:
-      use-field-name: true
+    - depguard
+    - exhaustruct
+    - forbidigo
+    - gochecknoglobals
+    - gochecknoinits
+    - godot
+    - ireturn
+    - mnd
+  settings:
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+        use-field-name: true
+    varnamelen:
+      ignore-names:
+        - err
+        - ok
+    revive:
       rules:
-        json: snake
-  varnamelen: # 変数の文字数
-    ignore-names:
-      - err
-      - ok
-
-issues:
+        - name: var-naming
+          disabled: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - prefix(github.com/uzumaki-inc/stay_or_go)
+        - default
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

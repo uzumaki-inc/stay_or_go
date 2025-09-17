@@ -8,6 +8,10 @@ type TsvPresenter struct {
 	analyzedLibInfos []AnalyzedLibInfo
 }
 
+func NewTsvPresenter(infos []AnalyzedLibInfo) TsvPresenter {
+	return TsvPresenter{analyzedLibInfos: infos}
+}
+
 func (p TsvPresenter) Display() {
 	Display(p)
 }
@@ -20,8 +24,4 @@ func (p TsvPresenter) makeHeader() []string {
 
 func (p TsvPresenter) makeBody() []string {
 	return makeBody(p.analyzedLibInfos, "\t")
-}
-
-func NewTsvPresenter(infos []AnalyzedLibInfo) TsvPresenter {
-	return TsvPresenter{analyzedLibInfos: infos}
 }

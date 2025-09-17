@@ -80,7 +80,7 @@ func (f rtFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r)
 func TestFetchJSONData_Non200AndDecodeError(t *testing.T) {
 	t.Parallel()
 
-	var out interface{}
+	var out any
 
 	// Non-200 client
 	client1 := &http.Client{Transport: rtFunc(func(_ *http.Request) (*http.Response, error) {
@@ -102,8 +102,8 @@ func TestFetchJSONData_Non200AndDecodeError(t *testing.T) {
 
 		return &http.Response{StatusCode: http.StatusOK, Body: body, Header: hdr}, nil
 	})}
-	err = fetchJSONData(client2, "http://example", nil, &out)
 
+	err = fetchJSONData(client2, "http://example", nil, &out)
 	if err == nil {
 		t.Fatalf("expected decode error")
 	}

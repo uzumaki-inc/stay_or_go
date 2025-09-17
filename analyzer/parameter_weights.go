@@ -41,13 +41,16 @@ func NewParameterWeights() ParameterWeights {
 func NewParameterWeightsFromConfiFile(configFilePath string) ParameterWeights {
 	viper.SetConfigFile(configFilePath)
 
-	if err := viper.ReadInConfig(); err != nil {
+	err := viper.ReadInConfig()
+	if err != nil {
 		utils.StdErrorPrintln("Failed to read the configuration file: %v\n", err)
 		os.Exit(1)
 	}
 
 	var weights ParameterWeights
-	if err := viper.Unmarshal(&weights); err != nil {
+
+	err = viper.Unmarshal(&weights)
+	if err != nil {
 		utils.StdErrorPrintln("Failed to unmarshal the configuration: %v\n", err)
 		os.Exit(1)
 	}

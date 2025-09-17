@@ -8,6 +8,10 @@ type MarkdownPresenter struct {
 	analyzedLibInfos []AnalyzedLibInfo
 }
 
+func NewMarkdownPresenter(infos []AnalyzedLibInfo) MarkdownPresenter {
+	return MarkdownPresenter{analyzedLibInfos: infos}
+}
+
 func (p MarkdownPresenter) Display() {
 	Display(p)
 }
@@ -25,8 +29,4 @@ func (p MarkdownPresenter) makeHeader() []string {
 
 func (p MarkdownPresenter) makeBody() []string {
 	return makeBody(p.analyzedLibInfos, "|")
-}
-
-func NewMarkdownPresenter(infos []AnalyzedLibInfo) MarkdownPresenter {
-	return MarkdownPresenter{analyzedLibInfos: infos}
 }

@@ -1,4 +1,3 @@
-//nolint:gofumpt // WSL formatting conflicts with gofumpt
 package parser_test
 
 import (
@@ -30,22 +29,23 @@ replace (
 )
 `
 
-	tmpFile, err := os.CreateTemp("", "go.mod-*.tmp")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "go.mod-*.tmp")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	defer os.Remove(tmpFile.Name())
 
-	if _, err := tmpFile.WriteString(content); err != nil {
+	_, err = tmpFile.WriteString(content)
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	_ = tmpFile.Close()
 
 	p := parser.GoParser{}
-	libs, err := p.Parse(tmpFile.Name())
 
+	libs, err := p.Parse(tmpFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestGoParser_GetRepositoryURL_SetsURLAndSkips(t *testing.T) {
 
 	assert.True(t, sdk.Skip)
 	assert.Equal(t, "Does not support libraries hosted outside of Github", sdk.SkipReason)
-	assert.Equal(t, "", sdk.RepositoryURL)
+	assert.Empty(t, sdk.RepositoryURL)
 
 	// replaced item should remain skipped and untouched
 	assert.True(t, replaced.Skip)

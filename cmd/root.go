@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -83,25 +84,20 @@ Output the results in Markdown, CSV, or TSV formats.`,
 
 		language := args[0]
 		// Delegate to testable runner
-		if err := run(language, filePath, outputFormat, githubToken, configFilePath, utils.Verbose, defaultDeps); err != nil {
+		err := run(language, filePath, outputFormat, githubToken, configFilePath, utils.Verbose, defaultDeps)
+		if err != nil {
 			os.Exit(1)
 		}
 	},
 }
 
 func isSupportedLanguage(language string) bool {
-	for _, l := range supportedLanguages {
-		if l == language {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(supportedLanguages, language)
 }
 
 // run executes the core logic with injectable dependencies. Returns error instead of exiting.
 //
-//nolint:funlen,cyclop,wsl // readability is prioritized; wsl rules would reduce clarity here
+//nolint:funlen,cyclop // readability is prioritized
 func run(language, inFile, format, token, config string, _ bool, deps Deps) error {
 	if !isSupportedLanguage(language) {
 		utils.StdErrorPrintln("Error: Unsupported language: %s. Supported languages are: %s\n",
@@ -120,6 +116,7 @@ func run(language, inFile, format, token, config string, _ bool, deps Deps) erro
 		for key := range supportedOutputFormats {
 			keys = append(keys, key)
 		}
+
 		utils.StdErrorPrintln("Error: Unsupported output format: %s. Supported output formats are: %s\n",
 			format, strings.Join(keys, ", "))
 
@@ -141,32 +138,39 @@ func run(language, inFile, format, token, config string, _ bool, deps Deps) erro
 	utils.DebugPrintln("Output format: " + format)
 
 	var weights analyzer.ParameterWeights
+
 	if config != "" {
 		utils.DebugPrintln("Config file: " + config)
 		weights = analyzer.NewParameterWeightsFromConfiFile(config)
 	} else {
 		weights = analyzer.NewParameterWeights()
 	}
+
 	analyzerSvc := deps.NewAnalyzer(token, weights)
 
 	utils.StdErrorPrintln("Selecting language... ")
+
 	selectedParser, err := deps.SelectParser(language)
 	if err != nil {
 		utils.StdErrorPrintln("Error selecting parser: %v", err)
 
 		return fmt.Errorf("select parser: %w", err)
 	}
+
 	utils.StdErrorPrintln("Parsing file...")
+
 	libInfoList, err := selectedParser.Parse(file)
 	if err != nil {
 		utils.StdErrorPrintln("Error parsing file: %v", err)
 
 		return fmt.Errorf("parse file: %w", err)
 	}
+
 	utils.StdErrorPrintln("Getting repository URLs...")
 	selectedParser.GetRepositoryURL(libInfoList)
 
 	var repoURLs []string
+
 	for _, info := range libInfoList {
 		if !info.Skip {
 			repoURLs = append(repoURLs, info.RepositoryURL)
@@ -174,6 +178,7 @@ func run(language, inFile, format, token, config string, _ bool, deps Deps) erro
 	}
 
 	utils.StdErrorPrintln("Analyzing libraries with Github...")
+
 	var gitHubRepoInfos []analyzer.GitHubRepoInfo
 	if len(repoURLs) > 0 {
 		gitHubRepoInfos = analyzerSvc.FetchGithubInfo(repoURLs)
@@ -182,6 +187,7 @@ func run(language, inFile, format, token, config string, _ bool, deps Deps) erro
 	}
 
 	utils.StdErrorPrintln("Making dataset...")
+
 	analyzedLibInfos := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
 	presenterInst := deps.SelectPresenter(format, analyzedLibInfos)
 
