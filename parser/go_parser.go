@@ -20,12 +20,20 @@ func (p GoParser) Parse(filePath string) ([]LibInfo, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		utils.StdErrorPrintln("%v: %v", ErrFailedToReadFile, err)
-		os.Exit(1)
+
+		return nil, ErrFailedToReadFile
 	}
 	defer file.Close()
 
-	replaceModules := p.collectReplaceModules(file)
-	libInfoList := p.processRequireBlock(file, replaceModules)
+	replaceModules, err := p.collectReplaceModules(file)
+	if err != nil {
+		return nil, err
+	}
+
+	libInfoList, err := p.processRequireBlock(file, replaceModules)
+	if err != nil {
+		return nil, err
+	}
 
 	return libInfoList, nil
 }
@@ -37,6 +45,14 @@ func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 		libInfo := &libInfoList[i]
 
 		if libInfo.Skip {
+			continue
+		}
+
+		if len(libInfo.Others) < 2 {
+			libInfo.Skip = true
+			libInfo.SkipReason = "Missing version information"
+			utils.StdErrorPrintln("%s missing version information", libInfo.Name)
+
 			continue
 		}
 
@@ -59,7 +75,7 @@ func (p GoParser) GetRepositoryURL(libInfoList []LibInfo) []LibInfo {
 	return libInfoList
 }
 
-func (p GoParser) collectReplaceModules(file *os.File) []string {
+func (p GoParser) collectReplaceModules(file *os.File) ([]string, error) {
 	var replaceModules []string
 
 	var inReplaceBlock bool
@@ -88,16 +104,24 @@ func (p GoParser) collectReplaceModules(file *os.File) []string {
 		}
 	}
 
-	_, err := file.Seek(0, 0) // Reset file pointer for next pass
+	err := scanner.Err()
 	if err != nil {
-		utils.StdErrorPrintln("%v: %v", ErrFailedToResetFilePointer, err)
-		os.Exit(1)
+		utils.StdErrorPrintln("%v: %v", ErrFailedToScanFile, err)
+
+		return nil, ErrFailedToScanFile
 	}
 
-	return replaceModules
+	_, err = file.Seek(0, 0) // Reset file pointer for next pass
+	if err != nil {
+		utils.StdErrorPrintln("%v: %v", ErrFailedToResetFilePointer, err)
+
+		return nil, ErrFailedToResetFilePointer
+	}
+
+	return replaceModules, nil
 }
 
-func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []LibInfo {
+func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) ([]LibInfo, error) {
 	var libInfoList []LibInfo
 
 	var inRequireBlock bool
@@ -120,7 +144,7 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []
 
 		if inRequireBlock && !strings.Contains(line, "// indirect") {
 			parts := strings.Fields(line)
-			if len(parts) > 0 {
+			if len(parts) >= 2 {
 				module := parts[0]
 				libParts := strings.Split(parts[0], "/")
 				libName := libParts[len(libParts)-1]
@@ -141,10 +165,11 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) []
 	err := scanner.Err()
 	if err != nil {
 		utils.StdErrorPrintln("%v: %v", ErrFailedToScanFile, err)
-		os.Exit(1)
+
+		return nil, ErrFailedToScanFile
 	}
 
-	return libInfoList
+	return libInfoList, nil
 }
 
 func contains(slice []string, item string) bool {

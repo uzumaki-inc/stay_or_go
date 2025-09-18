@@ -2,7 +2,6 @@ package presenter
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 
 	"github.com/uzumaki-inc/stay_or_go/analyzer"
@@ -166,46 +165,54 @@ func makeBody(analyzedLibInfos []AnalyzedLibInfo, separator string) []string {
 	rows := []string{}
 
 	for _, info := range analyzedLibInfos {
-		row := ""
-		val := reflect.ValueOf(info)
-
-		if val.Kind() == reflect.Ptr {
-			val = val.Elem()
-		}
-
-		for index, header := range headerString {
-			method := val.MethodByName(header)
-
-			if method.IsValid() {
-				result := method.Call(nil)
-
-				var resultStr interface{}
-
-				if len(result) > 0 && result[0].IsValid() && !result[0].IsNil() {
-					resultStr = result[0].Elem().Interface()
-				} else {
-					resultStr = "N/A"
-				}
-
-				row += fmt.Sprintf("%v", resultStr)
-				// 最後の要素でない場合にのみseparatorを追加
-				if index < len(headerString)-1 {
-					row += separator
-				}
-			} else {
-				utils.StdErrorPrintln("method %s not found in %v", header, info)
-				os.Exit(1)
-			}
-		}
-
-		if separator == "|" {
-			row = "|" + row + "|"
-		}
-
+		row := makeRow(info, separator)
 		rows = append(rows, row)
 	}
 
 	return rows
+}
+
+func makeRow(info AnalyzedLibInfo, separator string) string {
+	row := ""
+	val := reflect.ValueOf(info)
+
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	for index, header := range headerString {
+		cellValue := getCellValue(val, header, info)
+		row += cellValue
+
+		// 最後の要素でない場合にのみseparatorを追加
+		if index < len(headerString)-1 {
+			row += separator
+		}
+	}
+
+	if separator == "|" {
+		row = "|" + row + "|"
+	}
+
+	return row
+}
+
+func getCellValue(val reflect.Value, header string, info AnalyzedLibInfo) string {
+	method := val.MethodByName(header)
+
+	if !method.IsValid() {
+		utils.StdErrorPrintln("method %s not found in %v", header, info)
+
+		return "N/A"
+	}
+
+	result := method.Call(nil)
+
+	if len(result) == 0 || !result[0].IsValid() || result[0].IsNil() {
+		return "N/A"
+	}
+
+	return fmt.Sprintf("%v", result[0].Elem().Interface())
 }
 
 var headerString = []string{
