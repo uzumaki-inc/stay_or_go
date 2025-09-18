@@ -141,7 +141,14 @@ func run(language, inFile, format, token, config string, _ bool, deps Deps) erro
 
 	if config != "" {
 		utils.DebugPrintln("Config file: " + config)
-		weights = analyzer.NewParameterWeightsFromConfiFile(config)
+
+		var err error
+
+		weights, err = analyzer.NewParameterWeightsFromFile(config)
+		if err != nil {
+			utils.StdErrorPrintln("Failed to load config file: %v", err)
+			os.Exit(1)
+		}
 	} else {
 		weights = analyzer.NewParameterWeights()
 	}

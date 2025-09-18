@@ -1,9 +1,12 @@
 package analyzer
 
 import (
+	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 
 	"github.com/uzumaki-inc/stay_or_go/utils"
 )
@@ -19,12 +22,12 @@ const (
 )
 
 type ParameterWeights struct {
-	Watchers       float64 `mapstructure:"watchers"`
-	Stars          float64 `mapstructure:"stars"`
-	Forks          float64 `mapstructure:"forks"`
-	OpenIssues     float64 `mapstructure:"open_issues"`
-	LastCommitDate float64 `mapstructure:"last_commit_date"`
-	Archived       float64 `mapstructure:"archived"`
+	Watchers       float64 `mapstructure:"watchers"         yaml:"watchers"`
+	Stars          float64 `mapstructure:"stars"            yaml:"stars"`
+	Forks          float64 `mapstructure:"forks"            yaml:"forks"`
+	OpenIssues     float64 `mapstructure:"open_issues"      yaml:"open_issues"`
+	LastCommitDate float64 `mapstructure:"last_commit_date" yaml:"last_commit_date"`
+	Archived       float64 `mapstructure:"archived"         yaml:"archived"`
 }
 
 func NewParameterWeights() ParameterWeights {
@@ -56,4 +59,34 @@ func NewParameterWeightsFromConfiFile(configFilePath string) ParameterWeights {
 	}
 
 	return weights
+}
+
+// NewParameterWeightsFromReader creates ParameterWeights from an io.Reader
+// This function replaces Viper with direct YAML parsing and proper error handling
+func NewParameterWeightsFromReader(reader io.Reader) (ParameterWeights, error) {
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return ParameterWeights{}, fmt.Errorf("failed to read config data: %w", err)
+	}
+
+	var weights ParameterWeights
+
+	err = yaml.Unmarshal(data, &weights)
+	if err != nil {
+		return ParameterWeights{}, fmt.Errorf("failed to unmarshal YAML: %w", err)
+	}
+
+	return weights, nil
+}
+
+// NewParameterWeightsFromFile creates ParameterWeights from a file path
+// This function provides proper error handling without os.Exit
+func NewParameterWeightsFromFile(configFilePath string) (ParameterWeights, error) {
+	file, err := os.Open(configFilePath)
+	if err != nil {
+		return ParameterWeights{}, fmt.Errorf("failed to read config file: %w", err)
+	}
+	defer file.Close()
+
+	return NewParameterWeightsFromReader(file)
 }

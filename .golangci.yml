@@ -11,6 +11,7 @@ linters:
     - ireturn
     - mnd
     - wsl           # Deprecated - replaced by wsl_v5
+    - tagliatelle   # Allow snake_case in YAML for backward compatibility
   enable:
     - wsl_v5        # New version of wsl
   settings:
