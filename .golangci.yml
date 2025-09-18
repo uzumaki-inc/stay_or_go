@@ -10,6 +10,9 @@ linters:
     - godot
     - ireturn
     - mnd
+    - wsl           # Deprecated - replaced by wsl_v5
+  enable:
+    - wsl_v5        # New version of wsl
   settings:
     tagliatelle:
       case:
@@ -20,10 +23,15 @@ linters:
       ignore-names:
         - err
         - ok
+        - idx
     revive:
       rules:
         - name: var-naming
           disabled: true
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
   exclusions:
     generated: lax
     presets:
