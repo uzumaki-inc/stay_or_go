@@ -87,6 +87,76 @@ replace (
 	assert.Equal(t, "replaced module", replaced.SkipReason)
 }
 
+func TestGoParser_Parse_SingleLineRequire(t *testing.T) {
+	t.Parallel()
+
+	content := `module example.com/demo
+
+require example.com/direct v1.2.3
+require example.com/indirect v1.3.0 // indirect
+require example.com/commented v1.4.5 // keep this module
+
+require (
+    github.com/block/module v0.9.0
+)
+
+replace (
+    example.com/commented v1.4.5 => ./local/module
+)
+`
+
+	libs := mustParseGoMod(t, content)
+
+	direct := findLibInfo(libs, "direct")
+	commented := findLibInfo(libs, "commented")
+	block := findLibInfo(libs, "module")
+	indirect := findLibInfo(libs, "indirect")
+
+	if direct == nil || commented == nil || block == nil {
+		t.Fatalf("expected required modules to be parsed, got: %+v", libs)
+	}
+
+	assert.False(t, direct.Skip)
+	assert.Equal(t, []string{"example.com/direct", "v1.2.3"}, direct.Others)
+
+	assert.True(t, commented.Skip)
+	assert.Equal(t, "replaced module", commented.SkipReason)
+
+	assert.False(t, block.Skip)
+	assert.Equal(t, []string{"github.com/block/module", "v0.9.0"}, block.Others)
+
+	assert.Nil(t, indirect)
+}
+
+func mustParseGoMod(t *testing.T, content string) []parser.LibInfo {
+	t.Helper()
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "go.mod-*.tmp")
+	require.NoError(t, err)
+
+	_, err = tmpFile.WriteString(content)
+	require.NoError(t, err)
+
+	require.NoError(t, tmpFile.Close())
+
+	p := parser.GoParser{}
+
+	libs, err := p.Parse(tmpFile.Name())
+	require.NoError(t, err)
+
+	return libs
+}
+
+func findLibInfo(libs []parser.LibInfo, name string) *parser.LibInfo {
+	for i := range libs {
+		if libs[i].Name == name {
+			return &libs[i]
+		}
+	}
+
+	return nil
+}
+
 //nolint:paralleltest,funlen // Uses httpmock which doesn't support parallel tests, complex setup
 func TestGoParser_GetRepositoryURL_SetsURLAndSkips(t *testing.T) {
 	// Prepare initial lib list as if parsed

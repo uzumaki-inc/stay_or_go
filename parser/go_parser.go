@@ -130,36 +130,38 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) ([
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		if line == "require (" {
-			inRequireBlock = true
+		if strings.HasPrefix(line, "require") {
+			rest := strings.TrimSpace(strings.TrimPrefix(line, "require"))
+			if strings.HasPrefix(rest, "(") {
+				inRequireBlock = true
+
+				continue
+			}
+
+			if strings.Contains(line, "// indirect") {
+				continue
+			}
+
+			p.handleRequireEntry(rest, replaceModules, &libInfoList)
 
 			continue
 		}
 
-		if line == ")" && inRequireBlock {
+		if !inRequireBlock {
+			continue
+		}
+
+		if line == ")" {
 			inRequireBlock = false
 
 			continue
 		}
 
-		if inRequireBlock && !strings.Contains(line, "// indirect") {
-			parts := strings.Fields(line)
-			if len(parts) >= 2 {
-				module := parts[0]
-				libParts := strings.Split(parts[0], "/")
-				libName := libParts[len(libParts)-1]
-
-				var newLib LibInfo
-
-				if contains(replaceModules, module) {
-					newLib = NewLibInfo(libName, WithSkip(true), WithSkipReason("replaced module"))
-				} else {
-					newLib = NewLibInfo(libName, WithOthers([]string{parts[0], parts[1]}))
-				}
-
-				libInfoList = append(libInfoList, newLib)
-			}
+		if strings.Contains(line, "// indirect") {
+			continue
 		}
+
+		p.handleRequireEntry(line, replaceModules, &libInfoList)
 	}
 
 	err := scanner.Err()
@@ -170,6 +172,44 @@ func (p GoParser) processRequireBlock(file *os.File, replaceModules []string) ([
 	}
 
 	return libInfoList, nil
+}
+
+func (p GoParser) handleRequireEntry(line string, replaceModules []string, libInfoList *[]LibInfo) {
+	module, version, ok := extractModuleAndVersion(line)
+	if !ok {
+		return
+	}
+
+	libParts := strings.Split(module, "/")
+	libName := libParts[len(libParts)-1]
+
+	var newLib LibInfo
+
+	if contains(replaceModules, module) {
+		newLib = NewLibInfo(libName, WithSkip(true), WithSkipReason("replaced module"))
+	} else {
+		newLib = NewLibInfo(libName, WithOthers([]string{module, version}))
+	}
+
+	*libInfoList = append(*libInfoList, newLib)
+}
+
+func extractModuleAndVersion(line string) (string, string, bool) {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return "", "", false
+	}
+
+	if commentIndex := strings.Index(trimmed, "//"); commentIndex != -1 {
+		trimmed = strings.TrimSpace(trimmed[:commentIndex])
+	}
+
+	parts := strings.Fields(trimmed)
+	if len(parts) < 2 {
+		return "", "", false
+	}
+
+	return parts[0], parts[1], true
 }
 
 func contains(slice []string, item string) bool {
