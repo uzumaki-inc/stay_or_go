@@ -126,13 +126,13 @@ func MakeAnalyzedLibInfoList(
 
 	repoIndex := 0
 
-	for _, info := range libInfoList {
+	for idx := range libInfoList {
 		analyzedLibInfo := AnalyzedLibInfo{
-			LibInfo:        &info,
+			LibInfo:        &libInfoList[idx],
 			GitHubRepoInfo: nil,
 		}
 
-		if repoIndex < len(gitHubRepoInfos) && info.RepositoryURL == gitHubRepoInfos[repoIndex].GithubRepoURL {
+		if repoIndex < len(gitHubRepoInfos) && libInfoList[idx].RepositoryURL == gitHubRepoInfos[repoIndex].GithubRepoURL {
 			analyzedLibInfo.GitHubRepoInfo = &gitHubRepoInfos[repoIndex]
 			repoIndex++
 		}

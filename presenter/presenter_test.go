@@ -105,3 +105,58 @@ func TestDisplay(t *testing.T) {
 		})
 	}
 }
+
+// TestMakeAnalyzedLibInfoList_PointerBug tests that each AnalyzedLibInfo
+// has its own LibInfo instance, not sharing the same pointer
+func TestMakeAnalyzedLibInfoList_PointerBug(t *testing.T) {
+	t.Parallel()
+
+	// Create test data
+	libInfoList := []parser.LibInfo{
+		{Name: "lib1", RepositoryURL: "https://github.com/owner/lib1", Others: []string{"v1.0.0"}},
+		{Name: "lib2", RepositoryURL: "https://github.com/owner/lib2", Others: []string{"v2.0.0"}},
+		{Name: "lib3", RepositoryURL: "https://github.com/owner/lib3", Others: []string{"v3.0.0"}},
+	}
+
+	gitHubRepoInfos := []analyzer.GitHubRepoInfo{
+		{
+			GithubRepoURL:  "https://github.com/owner/lib1",
+			RepositoryName: "lib1",
+			Stars:          100,
+		},
+		{
+			GithubRepoURL:  "https://github.com/owner/lib2",
+			RepositoryName: "lib2",
+			Stars:          200,
+		},
+	}
+
+	// Call the function under test
+	result := presenter.MakeAnalyzedLibInfoList(libInfoList, gitHubRepoInfos)
+
+	// Verify that we have the expected number of results
+	assert.Len(t, result, 3)
+
+	// Verify that each AnalyzedLibInfo has a unique LibInfo pointer
+	// and correct values
+	assert.Equal(t, "lib1", result[0].LibInfo.Name)
+	assert.Equal(t, []string{"v1.0.0"}, result[0].LibInfo.Others)
+	assert.NotNil(t, result[0].GitHubRepoInfo)
+	assert.Equal(t, 100, result[0].GitHubRepoInfo.Stars)
+
+	assert.Equal(t, "lib2", result[1].LibInfo.Name)
+	assert.Equal(t, []string{"v2.0.0"}, result[1].LibInfo.Others)
+	assert.NotNil(t, result[1].GitHubRepoInfo)
+	assert.Equal(t, 200, result[1].GitHubRepoInfo.Stars)
+
+	assert.Equal(t, "lib3", result[2].LibInfo.Name)
+	assert.Equal(t, []string{"v3.0.0"}, result[2].LibInfo.Others)
+	assert.Nil(t, result[2].GitHubRepoInfo)
+
+	// Most important: verify that modifying one LibInfo doesn't affect others
+	// This would fail with the pointer bug
+	result[0].LibInfo.Name = "modified"
+	assert.Equal(t, "modified", result[0].LibInfo.Name)
+	assert.Equal(t, "lib2", result[1].LibInfo.Name)
+	assert.Equal(t, "lib3", result[2].LibInfo.Name)
+}
