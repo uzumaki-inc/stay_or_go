@@ -1,0 +1,43 @@
+name: pull-request
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: .go-version
+          cache: true
+      - name: Install dependencies
+        run: go mod download
+      - name: Run lint
+        run: make lint
+      - name: Run unit tests
+        run: go test ./...
+  check_stay_or_go:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Run stay_or_go
+        uses: konyu/action_stay_or_go@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          mode: go
+          workdir: .
+          min_score: "100" # ← 100 以下ならジョブ失敗
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stay_or_go_report_tsv_go
+          path: stay_or_go_report.tsv
