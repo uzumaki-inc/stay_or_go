@@ -75,29 +75,74 @@ func NewGitHubRepoAnalyzer(token string, weights ParameterWeights) *GitHubRepoAn
 	}
 }
 
-// FetchInfo fetches information for each repository
+// FetchInfo fetches information for each repository using concurrent processing
 func (g *GitHubRepoAnalyzer) FetchGithubInfo(repositoryUrls []string) []GitHubRepoInfo {
-	libraryInfoList := make([]GitHubRepoInfo, 0, len(repositoryUrls))
+	if len(repositoryUrls) == 0 {
+		return []GitHubRepoInfo{}
+	}
+
+	// Create result slice with proper capacity and initialization
+	results := make([]GitHubRepoInfo, len(repositoryUrls))
+
+	// Use worker pool with limited concurrency
+	const maxWorkers = 10
+
+	numWorkers := min(maxWorkers, len(repositoryUrls))
+
+	// Channels for work distribution
+	jobs := make(chan jobRequest, len(repositoryUrls))
+	done := make(chan jobResult, len(repositoryUrls))
+
+	// Start workers
+	for range numWorkers {
+		go g.worker(jobs, done)
+	}
+
+	// Send jobs
+	for idx, repoURL := range repositoryUrls {
+		jobs <- jobRequest{index: idx, repoURL: repoURL}
+	}
+
+	close(jobs)
+
+	// Collect results
+	for range repositoryUrls {
+		result := <-done
+		results[result.index] = result.info
+	}
+
+	return results
+}
+
+type jobRequest struct {
+	index   int
+	repoURL string
+}
+
+type jobResult struct {
+	index int
+	info  GitHubRepoInfo
+}
+
+func (g *GitHubRepoAnalyzer) worker(jobs <-chan jobRequest, results chan<- jobResult) {
 	client := &http.Client{}
 
-	for _, repoURL := range repositoryUrls {
-		utils.DebugPrintln("Fetching: " + repoURL)
+	for job := range jobs {
+		utils.DebugPrintln("Fetching: " + job.repoURL)
 
-		libraryInfo, err := g.getGitHubInfo(client, repoURL)
+		libraryInfo, err := g.getGitHubInfo(client, job.repoURL)
 		if err != nil {
 			libraryInfo = &GitHubRepoInfo{
 				Skip:       true,
-				SkipReason: "Failed fetching " + repoURL + " from GitHub",
+				SkipReason: "Failed fetching " + job.repoURL + " from GitHub",
 			}
 
-			utils.StdErrorPrintln("Failed fetching %s, error details: %v", repoURL, err)
+			utils.StdErrorPrintln("Failed fetching %s, error details: %v", job.repoURL, err)
 		}
 
-		libraryInfo.GithubRepoURL = repoURL
-		libraryInfoList = append(libraryInfoList, *libraryInfo)
+		libraryInfo.GithubRepoURL = job.repoURL
+		results <- jobResult{index: job.index, info: *libraryInfo}
 	}
-
-	return libraryInfoList
 }
 
 func (g *GitHubRepoAnalyzer) getGitHubInfo(
