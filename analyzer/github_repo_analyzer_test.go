@@ -10,6 +10,7 @@ import (
 	"github.com/uzumaki-inc/stay_or_go/analyzer"
 )
 
+//nolint:paralleltest // httpmock uses global state, cannot run in parallel
 func TestFetchGithubInfo(t *testing.T) {
 	// httpmockを有効化
 	httpmock.Activate()
@@ -64,6 +65,7 @@ func TestFetchGithubInfo(t *testing.T) {
 	assert.False(t, repoInfo.Skip, "Skip should be false")
 }
 
+//nolint:paralleltest // httpmock uses global state, cannot run in parallel
 func TestScoreIncludesWatchers(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -106,6 +108,7 @@ func TestScoreIncludesWatchers(t *testing.T) {
 	assert.Equal(t, 20, repoInfos[0].Score)
 }
 
+//nolint:paralleltest // httpmock uses global state, cannot run in parallel
 func TestFetchGithubInfo_ConcurrentProcessingMaintainsOrder(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
